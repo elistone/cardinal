@@ -1,0 +1,187 @@
+# Application Architecture
+
+**Status:** Accepted
+
+---
+
+## Summary
+
+This document records the foundational architectural decisions for Cardinal: its deployment model, monorepo structure, package responsibilities, data flow, and v1 feature scope.
+
+---
+
+## Deployment Model
+
+Cardinal is a **Home Assistant custom integration** distributed through HACS.
+
+The integration is responsible for:
+
+- Registering Cardinal as a frontend panel in Home Assistant
+- Serving compiled frontend assets
+- Managing configuration via Home Assistant's Config Flow
+- Providing future backend services if required
+
+From the user's perspective, Cardinal behaves as a first-party Home Assistant application. It appears in the sidebar, occupies the full viewport, and provides its own navigation and user experience.
+
+**The integration layer should remain as small as possible.** It acts as a bridge between Home Assistant and the frontend. All business logic lives in TypeScript packages.
+
+---
+
+## Architecture Goal
+
+```
+Runtime:      Home Assistant Panel
+Architecture: Platform-independent
+Future:       Portable to standalone web app or mobile without major rewrites
+```
+
+The Python integration is a thin runtime host. The TypeScript packages — domain models, business logic, providers, and UI — are written so they can be reused outside of Home Assistant.
+
+---
+
+## Monorepo Structure
+
+```
+apps/
+  frontend/        Vue/TypeScript panel application
+  integration/     Python Home Assistant custom integration
+
+packages/
+  core/            Business logic — pure TypeScript functions, no framework dependencies
+  domain/          Cardinal domain models (EnergySnapshot, BatteryState, DailySummary, etc.)
+  providers/       Data fetching and translation — outputs Cardinal domain models
+  ui/              Reusable Vue components
+```
+
+### Package Dependency Rules
+
+```
+packages/domain     ← no Cardinal dependencies (foundation)
+packages/core       ← depends on domain
+packages/providers  ← depends on domain
+packages/ui         ← depends on domain
+apps/frontend       ← depends on core, providers, ui, domain
+apps/integration    ← Python only, no TypeScript dependencies
+```
+
+No package may introduce a circular dependency. `packages/core` must never depend on `packages/providers` or any Vue package.
+
+---
+
+## Provider Contract
+
+Providers are responsible for:
+
+1. Connecting to the Home Assistant WebSocket API
+2. Subscribing to entity state changes
+3. Translating raw Home Assistant entities into Cardinal domain models
+4. Validating incoming data before passing it upstream
+
+**Providers output Cardinal domain models. They never expose raw Home Assistant entities to the rest of the application.**
+
+`packages/core` must never know what a Home Assistant entity looks like. The HA dependency boundary is the provider.
+
+This ensures the core remains platform-independent and allows future providers (e.g. a mock provider for testing, or a different data source for a standalone app) without changing business logic.
+
+---
+
+## Connection Initialisation
+
+When Home Assistant loads Cardinal as a custom panel, it passes a `hass` object to the panel's root web component. This object contains an authenticated WebSocket connection.
+
+**The Vue application receives `hass` at mount time, extracts the connection, and passes it into the Home Assistant provider during initialisation.**
+
+```
+HA Panel → hass object → apps/frontend entry point → HassProvider.connect(hass.connection)
+```
+
+From that point, the rest of the application communicates only through Cardinal provider interfaces. The provider has no dependency on Vue or on the panel runtime. This makes it independently testable and reusable.
+
+---
+
+## State Management and Data Flow
+
+```
+Provider  →  Pinia Store  →  Vue Components
+               ↑
+           packages/core
+           (pure functions)
+```
+
+1. The provider pushes Cardinal domain models into the relevant Pinia store when data changes.
+2. The store uses pure functions from `packages/core` to derive calculated values and insights (e.g. `calculateDailySavings(snapshot)`).
+3. Vue components consume the store only. Components must not contain business logic.
+
+**Business logic must never live inside Vue components.** Components are responsible for presentation only.
+
+---
+
+## Entity Mapping
+
+Cardinal requires users to map their Home Assistant entities to Cardinal concepts (solar power, battery state of charge, grid import, grid export, home consumption, etc.) during setup.
+
+Entity mapping is handled through a **Home Assistant Config Flow**:
+
+- During setup, Cardinal inspects the HA entity registry and pre-populates mapping fields using heuristics based on device class, integration, and entity naming conventions.
+- The user reviews and confirms the suggested mappings, with the ability to override any field.
+- Confirmed mappings are stored in the integration's config entry and passed to the provider at initialisation.
+
+Auto-discovery alone is not used for v1. HA installations vary too widely for heuristics to be reliable, and a silently wrong mapping violates the product principle that every calculation should be explainable.
+
+---
+
+## Domain Package
+
+`packages/domain` is the single source of truth for all Cardinal domain models and types.
+
+There is no separate `packages/types` package. If a genuine need for one emerges later, it can be extracted at that point rather than created speculatively.
+
+---
+
+## Toolchain
+
+| Concern | Tool |
+|---|---|
+| Package manager | pnpm workspaces |
+| Build | Vite |
+| Build orchestration | Turborepo |
+| Testing | Vitest |
+| Language | TypeScript (strict mode) |
+| Frontend framework | Vue |
+| State management | Pinia |
+
+No additional tooling should be introduced without a clear, demonstrated need.
+
+## Resilience
+
+Cardinal should continue operating whenever possible.
+
+Unavailable data sources should degrade gracefully.
+
+Missing sensors should produce explanatory messages rather than application errors.
+
+The UI should clearly communicate when information is unavailable and why.
+
+---
+
+## v1 Scope
+
+v1 is complete when Cardinal can answer one question:
+
+> **What is happening in my home right now, and what has happened today?**
+
+### In Scope
+
+- Live energy flow (solar, battery, grid, home consumption)
+- Human-readable current state summary (e.g. "Your battery is charging from excess solar.")
+- Live power breakdown (solar, battery, grid, home)
+- Today's energy summary (generated, consumed, imported, exported)
+- Today's cost, savings, and export earnings
+
+### Out of Scope for v1
+
+- Historical analytics beyond today
+- Forecasting and predictions
+- Additional modules (water, gas, EV, heating, air quality)
+- Time-of-use or complex tariff structures
+- Multi-home or multi-dashboard support

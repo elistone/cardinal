@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useEnergyStore } from './energy'
-import type { EnergySnapshot, DailySummary, DailyFinancials } from '@cardinal/domain'
+import type { ConfigurationHealth, DailyFinancials, DailySummary, EnergySnapshot } from '@cardinal/domain'
 
 const TIMESTAMP = new Date('2025-06-01T12:00:00Z')
 const TODAY = new Date('2025-06-01')
@@ -155,6 +155,56 @@ describe('useEnergyStore', () => {
       const financials = makeFinancials()
       store.setDailyFinancials(financials)
       expect(store.dailyFinancials).toEqual(financials)
+    })
+  })
+
+  describe('health', () => {
+    function makeHealth(): ConfigurationHealth {
+      const configured = { status: 'configured' as const, entityId: 'sensor.pv_power' }
+      const missing = { status: 'missing' as const }
+      return {
+        live: {
+          solar: configured,
+          batteryCharging: configured,
+          batteryDischarging: configured,
+          batteryLevel: configured,
+          gridImport: configured,
+          gridExport: configured,
+          homeConsumption: configured,
+        },
+        daily: {
+          solarGenerated: missing,
+          batteryCharged: missing,
+          batteryDischarged: missing,
+          gridImported: missing,
+          gridExported: missing,
+          homeConsumed: missing,
+        },
+      }
+    }
+
+    it('starts with no health', () => {
+      const store = useEnergyStore()
+      expect(store.health).toBeNull()
+    })
+
+    it('stores health when setHealth is called', () => {
+      const store = useEnergyStore()
+      const health = makeHealth()
+      store.setHealth(health)
+      expect(store.health).toEqual(health)
+    })
+
+    it('reflects the live solar status from the health model', () => {
+      const store = useEnergyStore()
+      store.setHealth(makeHealth())
+      expect(store.health?.live.solar.status).toBe('configured')
+    })
+
+    it('reflects missing status for unconfigured daily sensors', () => {
+      const store = useEnergyStore()
+      store.setHealth(makeHealth())
+      expect(store.health?.daily.solarGenerated.status).toBe('missing')
     })
   })
 })

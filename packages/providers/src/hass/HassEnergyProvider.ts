@@ -1,13 +1,15 @@
 import {subscribeEntities} from 'home-assistant-js-websocket'
-import type {DailySummaryCallback, EnergyProvider, SnapshotCallback} from '../EnergyProvider.js'
+import type {DailySummaryCallback, EnergyProvider, HealthCallback, SnapshotCallback} from '../EnergyProvider.js'
 import type {HassConnection, HassEntityMapping, HassState} from './types.js'
 import {translateDailySummary, translateEnergySnapshot} from './translate.js'
+import {assessConfigurationHealth} from './health.js'
 
 export class HassEnergyProvider implements EnergyProvider {
   private readonly connection: HassConnection
   private readonly mapping: HassEntityMapping
   private snapshotCallbacks: Set<SnapshotCallback> = new Set()
   private summaryCallbacks: Set<DailySummaryCallback> = new Set()
+  private healthCallbacks: Set<HealthCallback> = new Set()
   private unsubscribe: (() => void) | undefined
 
   constructor(connection: HassConnection, mapping: HassEntityMapping) {
@@ -56,6 +58,9 @@ export class HassEnergyProvider implements EnergyProvider {
         const summary = translateDailySummary(relevant, this.mapping)
         this.summaryCallbacks.forEach((cb) => cb(summary))
       }
+
+      const health = assessConfigurationHealth(relevant, this.mapping)
+      this.healthCallbacks.forEach((cb) => cb(health))
     })
   }
 
@@ -69,9 +74,15 @@ export class HassEnergyProvider implements EnergyProvider {
     return () => { this.summaryCallbacks.delete(callback) }
   }
 
+  onHealth(callback: HealthCallback): () => void {
+    this.healthCallbacks.add(callback)
+    return () => { this.healthCallbacks.delete(callback) }
+  }
+
   disconnect(): void {
     this.unsubscribe?.()
     this.snapshotCallbacks.clear()
     this.summaryCallbacks.clear()
+    this.healthCallbacks.clear()
   }
 }

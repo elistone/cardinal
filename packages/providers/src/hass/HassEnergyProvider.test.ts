@@ -7,7 +7,7 @@ vi.mock('home-assistant-js-websocket', () => ({
 import { subscribeEntities } from 'home-assistant-js-websocket'
 import { HassEnergyProvider } from './HassEnergyProvider'
 import type { HassConnection, HassState } from './types'
-import type { EnergySnapshot, DailySummary } from '@cardinal/domain'
+import type { ConfigurationHealth, DailySummary, EnergySnapshot } from '@cardinal/domain'
 
 function makeState(entityId: string, value: string): HassState {
   return {
@@ -227,7 +227,86 @@ describe('HassEnergyProvider', () => {
       provider.disconnect()
       triggerUpdate(makeEntities(makeState('sensor.pv_energy_today', '5.0')))
 
+
       expect(summaryCallback).not.toHaveBeenCalled()
+    })
+
+    it('stops invoking health callbacks after disconnect', () => {
+      const provider = new HassEnergyProvider(mockConnection, {
+        solarPower: 'sensor.pv_power',
+        currency: 'GBP',
+      })
+      const healthCallback = vi.fn()
+      provider.onHealth(healthCallback)
+
+      provider.disconnect()
+      triggerUpdate(makeEntities(makeState('sensor.pv_power', '1000')))
+
+      expect(healthCallback).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('health callbacks', () => {
+    it('invokes health callbacks on every entity update', () => {
+      const provider = new HassEnergyProvider(mockConnection, {
+        solarPower: 'sensor.pv_power',
+        currency: 'GBP',
+      })
+      const healthCallback = vi.fn()
+      provider.onHealth(healthCallback)
+
+      triggerUpdate(makeEntities(makeState('sensor.pv_power', '2000')))
+
+      expect(healthCallback).toHaveBeenCalledOnce()
+    })
+
+    it('reports configured for a sensor that is present and healthy', () => {
+      const provider = new HassEnergyProvider(mockConnection, {
+        solarPower: 'sensor.pv_power',
+        currency: 'GBP',
+      })
+      let received: ConfigurationHealth | null = null
+      provider.onHealth((h) => { received = h })
+
+      triggerUpdate(makeEntities(makeState('sensor.pv_power', '3600')))
+
+      expect(received!.live.solar.status).toBe('configured')
+      expect(received!.live.solar.entityId).toBe('sensor.pv_power')
+    })
+
+    it('reports unavailable for a configured sensor that HA marks as unavailable', () => {
+      const provider = new HassEnergyProvider(mockConnection, {
+        solarPower: 'sensor.pv_power',
+        currency: 'GBP',
+      })
+      let received: ConfigurationHealth | null = null
+      provider.onHealth((h) => { received = h })
+
+      triggerUpdate(makeEntities(makeState('sensor.pv_power', 'unavailable')))
+
+      expect(received!.live.solar.status).toBe('unavailable')
+    })
+
+    it('reports missing for concepts with no configured entity', () => {
+      const provider = new HassEnergyProvider(mockConnection, { currency: 'GBP' })
+      let received: ConfigurationHealth | null = null
+      provider.onHealth((h) => { received = h })
+
+      triggerUpdate({})
+
+      expect(received!.live.solar.status).toBe('missing')
+      expect(received!.daily.solarGenerated.status).toBe('missing')
+    })
+
+    it('stops invoking a health callback after its returned unsubscribe is called', () => {
+      const provider = new HassEnergyProvider(mockConnection, { currency: 'GBP' })
+      const healthCallback = vi.fn()
+      const unsub = provider.onHealth(healthCallback)
+
+      unsub()
+      triggerUpdate({})
+
+      expect(healthCallback).not.toHaveBeenCalled()
     })
   })
 })

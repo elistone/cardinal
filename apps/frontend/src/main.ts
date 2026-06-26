@@ -69,6 +69,7 @@ class CardinalPanel extends HTMLElement {
     this._provider = new HassEnergyProvider(this._hass.connection, mapping)
     this._provider.onSnapshot((snapshot) => store.setSnapshot(snapshot))
     this._provider.onDailySummary((summary) => store.setDailySummary(summary))
+    this._provider.onHealth((h) => store.setHealth(h))
   }
 
   disconnectedCallback(): void {

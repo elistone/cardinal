@@ -27,3 +27,11 @@ export type {
 export type { EnergyEventType, EnergyEvent } from './event.js'
 
 export type { EntityMapping } from './config.js'
+
+export type {
+  SensorHealthStatus,
+  ConceptHealth,
+  LiveHealth,
+  DailyHealth,
+  ConfigurationHealth,
+} from './health.js'

@@ -15,3 +15,32 @@ export interface HomeAssistant {
     time_format: string
   }
 }
+
+export interface CardinalPanelEntityMapping {
+  solarPower?: string
+  batteryPower?: string
+  batteryChargePower?: string
+  batteryDischargePower?: string
+  batteryStateOfCharge?: string
+  gridPower?: string
+  gridImportPower?: string
+  gridExportPower?: string
+  homeConsumption?: string
+  solarGeneratedToday?: string
+  batteryChargedToday?: string
+  batteryDischargedToday?: string
+  gridImportedToday?: string
+  gridExportedToday?: string
+  homeConsumedToday?: string
+  importRate?: string
+  exportRate?: string
+  currency?: string
+}
+
+export interface CardinalPanelConfig {
+  entityMapping?: CardinalPanelEntityMapping
+}
+
+export interface CardinalPanel {
+  config: CardinalPanelConfig
+}

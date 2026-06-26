@@ -20,6 +20,12 @@ export interface HassEntityMapping {
   gridImportPower?: string
   gridExportPower?: string
   homeConsumption?: string
+  solarGeneratedToday?: string
+  batteryChargedToday?: string
+  batteryDischargedToday?: string
+  gridImportedToday?: string
+  gridExportedToday?: string
+  homeConsumedToday?: string
   importRate?: string
   exportRate?: string
   currency: string

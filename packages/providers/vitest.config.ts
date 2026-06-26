@@ -10,9 +10,6 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.ts',
         'src/index.ts',
-        // HassEnergyProvider requires a live WebSocket connection.
-        // It is covered by integration tests, not unit tests.
-        'src/hass/HassEnergyProvider.ts',
       ],
       thresholds: {
         lines: 85,

@@ -7,7 +7,7 @@ type CardinalConfigEntry = ConfigEntry
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: CardinalConfigEntry) -> bool:
-    await async_setup_panel(hass)
+    await async_setup_panel(hass, entry)
     return True
 
 

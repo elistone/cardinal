@@ -62,6 +62,24 @@ export interface EntityMapping {
   /** Entity ID of the home consumption power sensor (watts). */
   readonly homeConsumption?: string
 
+  /** Entity ID of the solar energy generated today sensor (kWh). */
+  readonly solarGeneratedToday?: string
+
+  /** Entity ID of the battery energy charged today sensor (kWh). */
+  readonly batteryChargedToday?: string
+
+  /** Entity ID of the battery energy discharged today sensor (kWh). */
+  readonly batteryDischargedToday?: string
+
+  /** Entity ID of the grid energy imported today sensor (kWh). */
+  readonly gridImportedToday?: string
+
+  /** Entity ID of the grid energy exported today sensor (kWh). */
+  readonly gridExportedToday?: string
+
+  /** Entity ID of the home energy consumed today sensor (kWh). */
+  readonly homeConsumedToday?: string
+
   /**
    * Entity ID or fixed numeric string for the electricity import tariff rate.
    * Expected unit: currency per kWh (e.g. £/kWh).

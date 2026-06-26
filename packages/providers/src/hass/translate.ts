@@ -1,4 +1,4 @@
-import type { EnergySnapshot, SolarState, BatteryState, GridState, HomeState } from '@cardinal/domain'
+import type { EnergySnapshot, SolarState, BatteryState, GridState, HomeState, DailySummary } from '@cardinal/domain'
 import type { HassState } from './types.js'
 
 function parseWatts(state: HassState | undefined): number {
@@ -11,6 +11,12 @@ function parseSoc(state: HassState | undefined): number {
   if (!state) return 0
   const value = parseFloat(state.state)
   return isNaN(value) ? 0 : Math.min(100, Math.max(0, value))
+}
+
+function parseKwh(state: HassState | undefined): number {
+  if (!state) return 0
+  const value = parseFloat(state.state)
+  return isNaN(value) ? 0 : Math.max(0, value)
 }
 
 function translateSolarState(powerState: HassState | undefined): SolarState {
@@ -118,5 +124,38 @@ export function translateEnergySnapshot(
     home: translateHomeState(
       mapping.homeConsumption ? states[mapping.homeConsumption] : undefined,
     ),
+  }
+}
+
+export function translateDailySummary(
+  states: Record<string, HassState>,
+  mapping: {
+    solarGeneratedToday?: string
+    batteryChargedToday?: string
+    batteryDischargedToday?: string
+    gridImportedToday?: string
+    gridExportedToday?: string
+    homeConsumedToday?: string
+  },
+): DailySummary {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  return {
+    date: today,
+    solar: {
+      generatedKwh: parseKwh(mapping.solarGeneratedToday ? states[mapping.solarGeneratedToday] : undefined),
+    },
+    battery: {
+      chargedKwh: parseKwh(mapping.batteryChargedToday ? states[mapping.batteryChargedToday] : undefined),
+      dischargedKwh: parseKwh(mapping.batteryDischargedToday ? states[mapping.batteryDischargedToday] : undefined),
+    },
+    grid: {
+      importedKwh: parseKwh(mapping.gridImportedToday ? states[mapping.gridImportedToday] : undefined),
+      exportedKwh: parseKwh(mapping.gridExportedToday ? states[mapping.gridExportedToday] : undefined),
+    },
+    home: {
+      consumedKwh: parseKwh(mapping.homeConsumedToday ? states[mapping.homeConsumedToday] : undefined),
+    },
   }
 }

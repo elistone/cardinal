@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { translateEnergySnapshot } from './translate'
+import { translateDailySummary, translateEnergySnapshot } from './translate'
 import type { HassState } from './types'
 
 function state(entityId: string, value: string): HassState {
@@ -325,5 +325,109 @@ describe('translateEnergySnapshot — empty mapping', () => {
     expect(snapshot.grid.exportingWatts).toBe(0)
     expect(snapshot.grid.isIdle).toBe(true)
     expect(snapshot.home.consumingWatts).toBe(0)
+  })
+})
+
+describe('translateDailySummary — full mapping', () => {
+  it('reads kWh values from all daily energy sensors', () => {
+    const summary = translateDailySummary(
+      states(
+        state('sensor.pv_energy_today', '12.4'),
+        state('sensor.charge_energy_today', '5.2'),
+        state('sensor.discharge_energy_today', '3.1'),
+        state('sensor.energy_from_grid_today', '1.0'),
+        state('sensor.energy_to_grid_today', '8.7'),
+        state('sensor.load_consumption_today', '9.3'),
+      ),
+      {
+        solarGeneratedToday: 'sensor.pv_energy_today',
+        batteryChargedToday: 'sensor.charge_energy_today',
+        batteryDischargedToday: 'sensor.discharge_energy_today',
+        gridImportedToday: 'sensor.energy_from_grid_today',
+        gridExportedToday: 'sensor.energy_to_grid_today',
+        homeConsumedToday: 'sensor.load_consumption_today',
+      },
+    )
+
+    expect(summary.solar.generatedKwh).toBeCloseTo(12.4)
+    expect(summary.battery.chargedKwh).toBeCloseTo(5.2)
+    expect(summary.battery.dischargedKwh).toBeCloseTo(3.1)
+    expect(summary.grid.importedKwh).toBeCloseTo(1.0)
+    expect(summary.grid.exportedKwh).toBeCloseTo(8.7)
+    expect(summary.home.consumedKwh).toBeCloseTo(9.3)
+  })
+
+  it('sets date to today at local midnight', () => {
+    const summary = translateDailySummary(states(), {})
+    const expected = new Date()
+    expected.setHours(0, 0, 0, 0)
+    expect(summary.date.getFullYear()).toBe(expected.getFullYear())
+    expect(summary.date.getMonth()).toBe(expected.getMonth())
+    expect(summary.date.getDate()).toBe(expected.getDate())
+    expect(summary.date.getHours()).toBe(0)
+    expect(summary.date.getMinutes()).toBe(0)
+    expect(summary.date.getSeconds()).toBe(0)
+  })
+})
+
+describe('translateDailySummary — missing and unconfigured sensors', () => {
+  it('returns zero for all fields when no sensors are configured', () => {
+    const summary = translateDailySummary(states(), {})
+    expect(summary.solar.generatedKwh).toBe(0)
+    expect(summary.battery.chargedKwh).toBe(0)
+    expect(summary.battery.dischargedKwh).toBe(0)
+    expect(summary.grid.importedKwh).toBe(0)
+    expect(summary.grid.exportedKwh).toBe(0)
+    expect(summary.home.consumedKwh).toBe(0)
+  })
+
+  it('returns zero for a sensor that is configured but absent from states', () => {
+    const summary = translateDailySummary(states(), {
+      solarGeneratedToday: 'sensor.pv_energy_today',
+    })
+    expect(summary.solar.generatedKwh).toBe(0)
+  })
+
+  it('returns zero for an unavailable sensor', () => {
+    const summary = translateDailySummary(
+      states(state('sensor.pv_energy_today', 'unavailable')),
+      { solarGeneratedToday: 'sensor.pv_energy_today' },
+    )
+    expect(summary.solar.generatedKwh).toBe(0)
+  })
+
+  it('returns zero for an unknown sensor', () => {
+    const summary = translateDailySummary(
+      states(state('sensor.pv_energy_today', 'unknown')),
+      { solarGeneratedToday: 'sensor.pv_energy_today' },
+    )
+    expect(summary.solar.generatedKwh).toBe(0)
+  })
+
+  it('clamps negative kWh readings to zero', () => {
+    const summary = translateDailySummary(
+      states(state('sensor.pv_energy_today', '-1.5')),
+      { solarGeneratedToday: 'sensor.pv_energy_today' },
+    )
+    expect(summary.solar.generatedKwh).toBe(0)
+  })
+
+  it('returns only configured fields; unconfigured fields remain zero', () => {
+    const summary = translateDailySummary(
+      states(
+        state('sensor.pv_energy_today', '7.2'),
+        state('sensor.energy_from_grid_today', '1.4'),
+      ),
+      {
+        solarGeneratedToday: 'sensor.pv_energy_today',
+        gridImportedToday: 'sensor.energy_from_grid_today',
+      },
+    )
+    expect(summary.solar.generatedKwh).toBeCloseTo(7.2)
+    expect(summary.grid.importedKwh).toBeCloseTo(1.4)
+    expect(summary.battery.chargedKwh).toBe(0)
+    expect(summary.battery.dischargedKwh).toBe(0)
+    expect(summary.grid.exportedKwh).toBe(0)
+    expect(summary.home.consumedKwh).toBe(0)
   })
 })

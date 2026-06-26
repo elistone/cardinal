@@ -1,7 +1,7 @@
 import {subscribeEntities} from 'home-assistant-js-websocket'
 import type {DailySummaryCallback, EnergyProvider, SnapshotCallback} from '../EnergyProvider.js'
 import type {HassConnection, HassEntityMapping, HassState} from './types.js'
-import {translateEnergySnapshot} from './translate.js'
+import {translateDailySummary, translateEnergySnapshot} from './translate.js'
 
 export class HassEnergyProvider implements EnergyProvider {
   private readonly connection: HassConnection
@@ -27,26 +27,35 @@ export class HassEnergyProvider implements EnergyProvider {
       this.mapping.gridImportPower,
       this.mapping.gridExportPower,
       this.mapping.homeConsumption,
+      this.mapping.solarGeneratedToday,
+      this.mapping.batteryChargedToday,
+      this.mapping.batteryDischargedToday,
+      this.mapping.gridImportedToday,
+      this.mapping.gridExportedToday,
+      this.mapping.homeConsumedToday,
     ].filter(Boolean) as string[])
+
+    const hasDailySensors = [
+      this.mapping.solarGeneratedToday,
+      this.mapping.batteryChargedToday,
+      this.mapping.batteryDischargedToday,
+      this.mapping.gridImportedToday,
+      this.mapping.gridExportedToday,
+      this.mapping.homeConsumedToday,
+    ].some(Boolean)
 
     this.unsubscribe = subscribeEntities(this.connection, (entities) => {
       const relevant = Object.fromEntries(
         Object.entries(entities).filter(([id]) => trackedIds.has(id)),
       ) as Record<string, HassState>
 
-      const snapshot = translateEnergySnapshot(relevant, {
-        solarPower: this.mapping.solarPower,
-        batteryPower: this.mapping.batteryPower,
-        batteryChargePower: this.mapping.batteryChargePower,
-        batteryDischargePower: this.mapping.batteryDischargePower,
-        batteryStateOfCharge: this.mapping.batteryStateOfCharge,
-        gridPower: this.mapping.gridPower,
-        gridImportPower: this.mapping.gridImportPower,
-        gridExportPower: this.mapping.gridExportPower,
-        homeConsumption: this.mapping.homeConsumption,
-      })
-
+      const snapshot = translateEnergySnapshot(relevant, this.mapping)
       this.snapshotCallbacks.forEach((cb) => cb(snapshot))
+
+      if (hasDailySensors) {
+        const summary = translateDailySummary(relevant, this.mapping)
+        this.summaryCallbacks.forEach((cb) => cb(summary))
+      }
     })
   }
 

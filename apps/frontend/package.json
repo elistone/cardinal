@@ -8,6 +8,7 @@
     "dev": "vite",
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run",
+    "coverage": "vitest run --coverage",
     "lint": "echo \"No linter configured yet\""
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4",
     "vue-tsc": "^2.2.12"
   }
 }

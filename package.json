@@ -6,6 +6,7 @@
     "dev": "turbo dev",
     "test": "turbo test",
     "type-check": "turbo type-check",
+    "coverage": "turbo coverage",
     "lint": "turbo lint"
   },
   "devDependencies": {

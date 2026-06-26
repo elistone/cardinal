@@ -130,6 +130,27 @@ importers:
         specifier: ^2.2.12
         version: 2.2.12(typescript@5.9.3)
 
+  tests/integration:
+    devDependencies:
+      '@cardinal/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@cardinal/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@cardinal/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
+      '@vitest/coverage-v8':
+        specifier: ^3.2.4
+        version: 3.2.6(vitest@3.2.6(jsdom@29.1.1))
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(jsdom@29.1.1)
+
 packages:
 
   '@ampproject/remapping@2.3.0':

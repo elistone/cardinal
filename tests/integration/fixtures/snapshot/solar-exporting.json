@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "solar-exporting",
+  "description": "Midday surplus export. Battery full at 100%; solar generating 4.5 kW; exporting 3 kW after home consumption.",
+  "capturedAt": "2025-06-01T13:00:00Z",
+  "metadata": {
+    "provider": "LuxPower",
+    "weather": "Sunny",
+    "notes": "Battery fully charged by midday. All excess generation exported to grid."
+  },
+  "entities": {
+    "sensor.pv_power":                { "state": "4500", "attributes": {} },
+    "sensor.battery_charge_power":    { "state": "0",    "attributes": {} },
+    "sensor.battery_discharge_power": { "state": "0",    "attributes": {} },
+    "sensor.battery_soc":             { "state": "100",  "attributes": {} },
+    "sensor.power_from_grid":         { "state": "0",    "attributes": {} },
+    "sensor.power_to_grid":           { "state": "3000", "attributes": {} },
+    "sensor.load_power":              { "state": "1500", "attributes": {} }
+  },
+  "mapping": {
+    "solarPower":            "sensor.pv_power",
+    "batteryChargePower":    "sensor.battery_charge_power",
+    "batteryDischargePower": "sensor.battery_discharge_power",
+    "batteryStateOfCharge":  "sensor.battery_soc",
+    "gridImportPower":       "sensor.power_from_grid",
+    "gridExportPower":       "sensor.power_to_grid",
+    "homeConsumption":       "sensor.load_power",
+    "currency":              "GBP"
+  },
+  "expected": {
+    "snapshot": {
+      "solar":   { "generatingWatts": 4500, "isGenerating": true  },
+      "battery": { "chargePercent": 100, "chargingWatts": 0, "dischargingWatts": 0, "isCharging": false, "isDischarging": false, "isIdle": true },
+      "grid":    { "importingWatts": 0,     "exportingWatts": 3000, "isImporting": false, "isExporting": true,  "isIdle": false },
+      "home":    { "consumingWatts": 1500 }
+    },
+    "insight": {
+      "type":      "solar_exporting",
+      "sentiment": "positive",
+      "title":     "Exporting Solar"
+    }
+  }
+}

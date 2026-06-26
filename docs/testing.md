@@ -94,6 +94,79 @@ Pinia stores are tested directly without rendering Vue components. Tests verify:
 - State updates correctly when setters are called
 - Computed values (getters) derive correctly from state
 
+### `tests/integration` — fixture-based integration tests
+
+**No coverage threshold.** These tests exercise the full pipeline — real HA entity states through translation into domain models, then through the insight engine — using JSON fixtures captured from a live system.
+
+Fixture files live under `tests/integration/fixtures/`:
+
+```
+tests/integration/fixtures/
+  snapshot/   ← single-point-in-time scenarios
+  event/      ← before/after pairs for event detection
+```
+
+Tests driven by these fixtures:
+
+| Test file | What it verifies |
+|---|---|
+| `snapshot.test.ts` | `translateEnergySnapshot()` produces the correct domain model for each fixture |
+| `insight.test.ts` | `describeEnergyState()` produces the correct type, sentiment, and title |
+| `event.test.ts` | `detectEvents()` emits the right events (pending implementation) |
+
+---
+
+## Fixture format
+
+Each fixture is a self-contained JSON file:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "battery-charging-solar",
+  "description": "Human-readable summary of the scenario.",
+  "capturedAt": "2025-06-01T12:30:00Z",
+  "metadata": {
+    "provider": "LuxPower",
+    "weather": "Sunny",
+    "notes": "Optional free-text context for future readers."
+  },
+  "entities": {
+    "sensor.pv_power": { "state": "3600", "attributes": {} }
+  },
+  "mapping": { "solarPower": "sensor.pv_power", "currency": "GBP" },
+  "expected": {
+    "snapshot": { "solar": { "generatingWatts": 3600, "isGenerating": true } },
+    "insight":  { "type": "battery_charging_solar", "sentiment": "positive", "title": "Charging from Solar" }
+  }
+}
+```
+
+**`schemaVersion`** — must equal `1`. The test helper rejects fixtures with an unsupported version, so future format changes can be introduced without silently misinterpreting older files.
+
+**`metadata`** — ignored by tests; purely for documentation. Record anything that helps a reader understand the scenario months later.
+
+**`expected.insight`** — asserts only `type`, `sentiment`, and `title`. Description strings are intentionally excluded so wording can be improved without breaking tests.
+
+---
+
+## Fixture IDs are permanent
+
+The `id` field is the stable identity of a scenario. **Never rename an `id` once it has been committed** unless the underlying scenario has materially changed. IDs appear in test failure messages and historical references; changing them breaks that continuity.
+
+If a scenario needs to be updated (e.g. sensor values corrected), update the fixture in place and keep the same `id`. If a genuinely new scenario is needed, create a new fixture with a new `id`.
+
+---
+
+## Adding a new fixture
+
+1. Open **Home Assistant → Developer Tools → States** and locate the relevant entities.
+2. Create a new JSON file under `tests/integration/fixtures/snapshot/` (or `event/` for a transition scenario).
+3. Fill in `entities` and `mapping` from the live state values.
+4. Write the `expected` section based on what you know the values should produce.
+5. Run `pnpm --filter @cardinal/integration-tests test` to confirm the fixture passes.
+6. Commit the fixture file. No other code changes are required — the tests discover fixtures by directory glob.
+
 ---
 
 ## Running Tests
@@ -110,6 +183,7 @@ pnpm test
 pnpm --filter @cardinal/core test
 pnpm --filter @cardinal/providers test
 pnpm --filter @cardinal/frontend test
+pnpm --filter @cardinal/integration-tests test
 ```
 
 ### With coverage

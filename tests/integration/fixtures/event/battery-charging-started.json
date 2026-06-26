@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "battery-charging-started",
+  "description": "Battery transitions from idle to charging as morning solar generation ramps up past home consumption.",
+  "metadata": {
+    "provider": "LuxPower",
+    "weather": "Sunny",
+    "notes": "Solar crosses the threshold needed to begin charging around 09:30."
+  },
+  "before": {
+    "capturedAt": "2025-06-01T09:00:00Z",
+    "entities": {
+      "sensor.pv_power":                { "state": "200",  "attributes": {} },
+      "sensor.battery_charge_power":    { "state": "0",    "attributes": {} },
+      "sensor.battery_discharge_power": { "state": "0",    "attributes": {} },
+      "sensor.battery_soc":             { "state": "45",   "attributes": {} },
+      "sensor.power_from_grid":         { "state": "200",  "attributes": {} },
+      "sensor.power_to_grid":           { "state": "0",    "attributes": {} },
+      "sensor.load_power":              { "state": "400",  "attributes": {} }
+    },
+    "mapping": {
+      "solarPower":            "sensor.pv_power",
+      "batteryChargePower":    "sensor.battery_charge_power",
+      "batteryDischargePower": "sensor.battery_discharge_power",
+      "batteryStateOfCharge":  "sensor.battery_soc",
+      "gridImportPower":       "sensor.power_from_grid",
+      "gridExportPower":       "sensor.power_to_grid",
+      "homeConsumption":       "sensor.load_power",
+      "currency":              "GBP"
+    }
+  },
+  "after": {
+    "capturedAt": "2025-06-01T09:30:00Z",
+    "entities": {
+      "sensor.pv_power":                { "state": "2800", "attributes": {} },
+      "sensor.battery_charge_power":    { "state": "1500", "attributes": {} },
+      "sensor.battery_discharge_power": { "state": "0",    "attributes": {} },
+      "sensor.battery_soc":             { "state": "46",   "attributes": {} },
+      "sensor.power_from_grid":         { "state": "0",    "attributes": {} },
+      "sensor.power_to_grid":           { "state": "900",  "attributes": {} },
+      "sensor.load_power":              { "state": "400",  "attributes": {} }
+    },
+    "mapping": {
+      "solarPower":            "sensor.pv_power",
+      "batteryChargePower":    "sensor.battery_charge_power",
+      "batteryDischargePower": "sensor.battery_discharge_power",
+      "batteryStateOfCharge":  "sensor.battery_soc",
+      "gridImportPower":       "sensor.power_from_grid",
+      "gridExportPower":       "sensor.power_to_grid",
+      "homeConsumption":       "sensor.load_power",
+      "currency":              "GBP"
+    }
+  },
+  "expected": {
+    "events": [
+      { "type": "battery_charging_started" },
+      { "type": "grid_import_stopped" },
+      { "type": "grid_export_started" }
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "battery-discharging-solo",
+  "description": "Early evening. No solar; battery alone powering the home with no grid draw.",
+  "capturedAt": "2025-06-01T19:30:00Z",
+  "metadata": {
+    "provider": "LuxPower",
+    "weather": "Evening",
+    "notes": "Battery fully covering evening load. Grid export and import both zero."
+  },
+  "entities": {
+    "sensor.pv_power":                { "state": "0",    "attributes": {} },
+    "sensor.battery_charge_power":    { "state": "0",    "attributes": {} },
+    "sensor.battery_discharge_power": { "state": "2000", "attributes": {} },
+    "sensor.battery_soc":             { "state": "80",   "attributes": {} },
+    "sensor.power_from_grid":         { "state": "0",    "attributes": {} },
+    "sensor.power_to_grid":           { "state": "0",    "attributes": {} },
+    "sensor.load_power":              { "state": "2000", "attributes": {} }
+  },
+  "mapping": {
+    "solarPower":            "sensor.pv_power",
+    "batteryChargePower":    "sensor.battery_charge_power",
+    "batteryDischargePower": "sensor.battery_discharge_power",
+    "batteryStateOfCharge":  "sensor.battery_soc",
+    "gridImportPower":       "sensor.power_from_grid",
+    "gridExportPower":       "sensor.power_to_grid",
+    "homeConsumption":       "sensor.load_power",
+    "currency":              "GBP"
+  },
+  "expected": {
+    "snapshot": {
+      "solar":   { "generatingWatts": 0,    "isGenerating": false },
+      "battery": { "chargePercent": 80, "chargingWatts": 0, "dischargingWatts": 2000, "isCharging": false, "isDischarging": true,  "isIdle": false },
+      "grid":    { "importingWatts": 0,     "exportingWatts": 0, "isImporting": false, "isExporting": false, "isIdle": true },
+      "home":    { "consumingWatts": 2000 }
+    },
+    "insight": {
+      "type":      "battery_discharging",
+      "sentiment": "positive",
+      "title":     "Running on Battery"
+    }
+  }
+}

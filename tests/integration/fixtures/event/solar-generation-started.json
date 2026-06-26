@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "solar-generation-started",
+  "description": "First light. Solar panels begin generating at sunrise; home shifts from full grid import to partial solar cover.",
+  "metadata": {
+    "provider": "LuxPower",
+    "weather": "Sunny",
+    "notes": "Sunrise transition captured around 06:00 in June."
+  },
+  "before": {
+    "capturedAt": "2025-06-01T05:50:00Z",
+    "entities": {
+      "sensor.pv_power":                { "state": "0",    "attributes": {} },
+      "sensor.battery_charge_power":    { "state": "0",    "attributes": {} },
+      "sensor.battery_discharge_power": { "state": "0",    "attributes": {} },
+      "sensor.battery_soc":             { "state": "90",   "attributes": {} },
+      "sensor.power_from_grid":         { "state": "350",  "attributes": {} },
+      "sensor.power_to_grid":           { "state": "0",    "attributes": {} },
+      "sensor.load_power":              { "state": "350",  "attributes": {} }
+    },
+    "mapping": {
+      "solarPower":            "sensor.pv_power",
+      "batteryChargePower":    "sensor.battery_charge_power",
+      "batteryDischargePower": "sensor.battery_discharge_power",
+      "batteryStateOfCharge":  "sensor.battery_soc",
+      "gridImportPower":       "sensor.power_from_grid",
+      "gridExportPower":       "sensor.power_to_grid",
+      "homeConsumption":       "sensor.load_power",
+      "currency":              "GBP"
+    }
+  },
+  "after": {
+    "capturedAt": "2025-06-01T06:10:00Z",
+    "entities": {
+      "sensor.pv_power":                { "state": "150",  "attributes": {} },
+      "sensor.battery_charge_power":    { "state": "0",    "attributes": {} },
+      "sensor.battery_discharge_power": { "state": "0",    "attributes": {} },
+      "sensor.battery_soc":             { "state": "90",   "attributes": {} },
+      "sensor.power_from_grid":         { "state": "200",  "attributes": {} },
+      "sensor.power_to_grid":           { "state": "0",    "attributes": {} },
+      "sensor.load_power":              { "state": "350",  "attributes": {} }
+    },
+    "mapping": {
+      "solarPower":            "sensor.pv_power",
+      "batteryChargePower":    "sensor.battery_charge_power",
+      "batteryDischargePower": "sensor.battery_discharge_power",
+      "batteryStateOfCharge":  "sensor.battery_soc",
+      "gridImportPower":       "sensor.power_from_grid",
+      "gridExportPower":       "sensor.power_to_grid",
+      "homeConsumption":       "sensor.load_power",
+      "currency":              "GBP"
+    }
+  },
+  "expected": {
+    "events": [
+      { "type": "solar_generation_started" }
+    ]
+  }
+}

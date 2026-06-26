@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "solar-assist",
+  "description": "Morning ramp-up. Solar generating 800 W but not enough to cover the 1.5 kW load; grid topping up 700 W.",
+  "capturedAt": "2025-06-01T08:30:00Z",
+  "metadata": {
+    "provider": "LuxPower",
+    "weather": "Partly cloudy",
+    "notes": "Solar starting up in the morning. Battery still charging from overnight grid session."
+  },
+  "entities": {
+    "sensor.pv_power":                { "state": "800",  "attributes": {} },
+    "sensor.battery_charge_power":    { "state": "0",    "attributes": {} },
+    "sensor.battery_discharge_power": { "state": "0",    "attributes": {} },
+    "sensor.battery_soc":             { "state": "45",   "attributes": {} },
+    "sensor.power_from_grid":         { "state": "700",  "attributes": {} },
+    "sensor.power_to_grid":           { "state": "0",    "attributes": {} },
+    "sensor.load_power":              { "state": "1500", "attributes": {} }
+  },
+  "mapping": {
+    "solarPower":            "sensor.pv_power",
+    "batteryChargePower":    "sensor.battery_charge_power",
+    "batteryDischargePower": "sensor.battery_discharge_power",
+    "batteryStateOfCharge":  "sensor.battery_soc",
+    "gridImportPower":       "sensor.power_from_grid",
+    "gridExportPower":       "sensor.power_to_grid",
+    "homeConsumption":       "sensor.load_power",
+    "currency":              "GBP"
+  },
+  "expected": {
+    "snapshot": {
+      "solar":   { "generatingWatts": 800,  "isGenerating": true  },
+      "battery": { "chargePercent": 45, "chargingWatts": 0, "dischargingWatts": 0, "isCharging": false, "isDischarging": false, "isIdle": true },
+      "grid":    { "importingWatts": 700,   "exportingWatts": 0, "isImporting": true,  "isExporting": false, "isIdle": false },
+      "home":    { "consumingWatts": 1500 }
+    },
+    "insight": {
+      "type":      "solar_covering",
+      "sentiment": "positive",
+      "title":     "Solar Assist"
+    }
+  }
+}

@@ -12,6 +12,7 @@ from .const import (
     CONF_BATTERY_CHARGED_TODAY,
     CONF_BATTERY_DISCHARGE_POWER,
     CONF_BATTERY_DISCHARGED_TODAY,
+    CONF_BATTERY_POWER,
     CONF_BATTERY_SOC,
     CONF_CURRENCY,
     CONF_EXPORT_RATE,
@@ -19,6 +20,7 @@ from .const import (
     CONF_GRID_EXPORTED_TODAY,
     CONF_GRID_IMPORT_POWER,
     CONF_GRID_IMPORTED_TODAY,
+    CONF_GRID_POWER,
     CONF_HOME_CONSUMED_TODAY,
     CONF_HOME_CONSUMPTION,
     CONF_IMPORT_RATE,
@@ -56,9 +58,15 @@ class CardinalConfigFlow(ConfigFlow, domain=DOMAIN):
 
         suggestions = {
             CONF_SOLAR_POWER: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["solar", "pv", "generation"]),
+            # Battery: use EITHER battery_power (single signed sensor) OR charge + discharge (separate sensors).
+            # If both are supplied, the separate sensors take precedence.
+            CONF_BATTERY_POWER: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["battery_power", "bat_power"]),
             CONF_BATTERY_CHARGE_POWER: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["battery_charge", "charge_power", "bat_charge"]),
             CONF_BATTERY_DISCHARGE_POWER: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["battery_discharge", "discharge_power", "bat_discharge"]),
             CONF_BATTERY_SOC: _suggest_entity(sensors, [SensorDeviceClass.BATTERY], ["battery", "soc", "charge"]),
+            # Grid: use EITHER grid_power (single signed sensor) OR import + export (separate sensors).
+            # If both are supplied, the separate sensors take precedence.
+            CONF_GRID_POWER: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["grid_power", "net_power", "meter_power"]),
             CONF_GRID_IMPORT_POWER: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["grid_import", "power_from_grid", "import_power", "grid_in"]),
             CONF_GRID_EXPORT_POWER: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["grid_export", "power_to_grid", "export_power", "grid_out"]),
             CONF_HOME_CONSUMPTION: _suggest_entity(sensors, [SensorDeviceClass.POWER], ["load_power", "home", "house", "load", "consumption"]),
@@ -75,9 +83,11 @@ class CardinalConfigFlow(ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema({
             vol.Optional(CONF_SOLAR_POWER, default=suggestions[CONF_SOLAR_POWER]): str,
+            vol.Optional(CONF_BATTERY_POWER, default=suggestions[CONF_BATTERY_POWER]): str,
             vol.Optional(CONF_BATTERY_CHARGE_POWER, default=suggestions[CONF_BATTERY_CHARGE_POWER]): str,
             vol.Optional(CONF_BATTERY_DISCHARGE_POWER, default=suggestions[CONF_BATTERY_DISCHARGE_POWER]): str,
             vol.Optional(CONF_BATTERY_SOC, default=suggestions[CONF_BATTERY_SOC]): str,
+            vol.Optional(CONF_GRID_POWER, default=suggestions[CONF_GRID_POWER]): str,
             vol.Optional(CONF_GRID_IMPORT_POWER, default=suggestions[CONF_GRID_IMPORT_POWER]): str,
             vol.Optional(CONF_GRID_EXPORT_POWER, default=suggestions[CONF_GRID_EXPORT_POWER]): str,
             vol.Optional(CONF_HOME_CONSUMPTION, default=suggestions[CONF_HOME_CONSUMPTION]): str,

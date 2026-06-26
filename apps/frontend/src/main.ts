@@ -65,17 +65,48 @@ class CardinalPanel extends HTMLElement {
 
     const store = useEnergyStore(pinia)
 
-    // Start in connecting state. Status moves to 'connected' on first snapshot.
-    store.setConnectionStatus('connecting')
+    // HA only calls _mount() after hass.connection is established, so start connected.
+    // The onConnectionStatus callback handles subsequent disconnects and reconnects.
+    store.setConnectionStatus('connected')
 
     const mapping = buildMapping(this._panelConfig.entityMapping ?? {})
 
+    if (import.meta.env.DEV) {
+      console.debug('[Cardinal] Mounting panel with entity mapping:', mapping)
+    }
+
     this._provider = new HassEnergyProvider(this._hass.connection, mapping)
 
-    this._provider.onConnectionStatus((status) => store.setConnectionStatus(status))
-    this._provider.onSnapshot((s) => store.setSnapshot(s))
+    this._provider.onConnectionStatus((status) => {
+      if (import.meta.env.DEV) console.debug('[Cardinal] Connection status changed:', status)
+      store.setConnectionStatus(status)
+    })
+
+    this._provider.onSnapshot((s) => {
+      if (import.meta.env.DEV) {
+        console.debug('[Cardinal] Snapshot received:', {
+          solar: `${s.solar.generatingWatts}W`,
+          battery: `${s.battery.chargePercent}% ${s.battery.isCharging ? `↑${s.battery.chargingWatts}W` : s.battery.isDischarging ? `↓${s.battery.dischargingWatts}W` : 'idle'}`,
+          grid: s.grid.isImporting ? `importing ${s.grid.importingWatts}W` : s.grid.isExporting ? `exporting ${s.grid.exportingWatts}W` : 'idle',
+          home: `${s.home.consumingWatts}W`,
+        })
+      }
+      store.setSnapshot(s)
+    })
+
     this._provider.onDailySummary((summary) => store.setDailySummary(summary))
-    this._provider.onHealth((h) => store.setHealth(h))
+
+    this._provider.onHealth((h) => {
+      if (import.meta.env.DEV) {
+        const problems = Object.entries({ ...h.live, ...h.daily })
+          .filter(([, c]) => c.status !== 'configured')
+          .map(([k, c]) => `${k}: ${c.status}${c.status !== 'missing' ? ` (${c.entityId})` : ''}`)
+        if (problems.length > 0) {
+          console.debug('[Cardinal] Sensor health issues:', problems)
+        }
+      }
+      store.setHealth(h)
+    })
   }
 
   disconnectedCallback(): void {

@@ -9,7 +9,8 @@
     "type-check": "turbo type-check",
     "coverage": "turbo coverage",
     "lint": "turbo lint",
-    "screenshot": "turbo build-storybook && pnpm --filter @cardinal/screenshots screenshot"
+    "screenshot": "turbo build-storybook && pnpm --filter @cardinal/screenshots screenshot",
+    "package": "node scripts/package.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.0",

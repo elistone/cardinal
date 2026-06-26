@@ -1,73 +1,121 @@
 import type { EnergySnapshot, EnergyInsight } from '@cardinal/domain'
 
 /**
- * Derives a human-readable EnergyInsight from a live EnergySnapshot.
+ * Derives a structured EnergyInsight from a live EnergySnapshot.
  *
- * Evaluates the snapshot in priority order — the first matching condition
- * wins. The ordering reflects what a homeowner cares most about seeing.
+ * Evaluates the snapshot in priority order — the first matching condition wins.
+ * The ordering reflects what a homeowner most wants to understand first:
+ * battery behaviour, then solar self-sufficiency, then grid dependency.
+ *
+ * All insights generated here carry:
+ * - priority: 'normal'   — live state descriptions are informational
+ * - confidence: 'high'   — derived directly from sensor data
+ * - timestamp            — copied from the source snapshot
  */
 export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
   const { solar, battery, grid } = snapshot
+  const id = crypto.randomUUID()
+  const timestamp = snapshot.timestamp
 
   if (battery.isCharging && solar.isGenerating && solar.generatingWatts > battery.chargingWatts) {
     return {
+      id,
       type: 'battery_charging_solar',
-      headline: 'Your battery is charging from excess solar.',
       sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp,
+      title: 'Charging from Solar',
+      description: 'Your battery is charging from excess solar.',
     }
   }
 
   if (battery.isCharging && grid.isImporting) {
     return {
+      id,
       type: 'battery_charging_grid',
-      headline: 'Your battery is charging from the grid.',
       sentiment: 'neutral',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp,
+      title: 'Charging from Grid',
+      description: 'Your battery is charging from the grid.',
     }
   }
 
   if (battery.isDischarging && !grid.isImporting) {
     return {
+      id,
       type: 'battery_discharging',
-      headline: 'Your home is running on battery and solar.',
       sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp,
+      title: 'Running on Battery',
+      description: 'Your home is running on battery and solar.',
     }
   }
 
   if (battery.isDischarging && grid.isImporting) {
     return {
+      id,
       type: 'battery_discharging',
-      headline: 'Your battery and the grid are powering your home.',
       sentiment: 'neutral',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp,
+      title: 'Battery and Grid',
+      description: 'Your battery and the grid are powering your home.',
     }
   }
 
   if (solar.isGenerating && grid.isExporting) {
     return {
+      id,
       type: 'solar_exporting',
-      headline: "You're generating more solar than you're using.",
       sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp,
+      title: 'Exporting Solar',
+      description: "You're generating more solar than you're using.",
     }
   }
 
   if (solar.isGenerating && !grid.isImporting) {
     return {
+      id,
       type: 'solar_covering',
-      headline: 'Your home is running entirely on solar.',
       sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp,
+      title: 'Running on Solar',
+      description: 'Your home is running entirely on solar.',
     }
   }
 
   if (solar.isGenerating && grid.isImporting) {
     return {
+      id,
       type: 'solar_covering',
-      headline: "Solar is covering most of your home's power.",
       sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp,
+      title: 'Solar Assist',
+      description: "Solar is covering most of your home's power.",
     }
   }
 
   return {
+    id,
     type: 'grid_importing',
-    headline: 'Your home is running on grid power.',
     sentiment: 'neutral',
+    priority: 'normal',
+    confidence: 'high',
+    timestamp,
+    title: 'Grid Power',
+    description: 'Your home is running on grid power.',
   }
 }

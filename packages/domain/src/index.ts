@@ -18,7 +18,12 @@ export type {
 export type {
   InsightType,
   InsightSentiment,
+  InsightPriority,
+  InsightConfidence,
+  InsightAction,
   EnergyInsight,
 } from './insight.js'
+
+export type { EnergyEventType, EnergyEvent } from './event.js'
 
 export type { EntityMapping } from './config.js'

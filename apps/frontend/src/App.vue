@@ -1,6 +1,6 @@
 <template>
   <div class="cardinal">
-    <p v-if="insight">{{ insight.headline }}</p>
+    <p v-if="insight">{{ insight.description }}</p>
     <p v-else>Loading…</p>
   </div>
 </template>

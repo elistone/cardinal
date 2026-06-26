@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["../integration/custom_components/cardinal/frontend/**"]
+    }
+  }
+}

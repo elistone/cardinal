@@ -138,6 +138,41 @@ There is no separate `packages/types` package. If a genuine need for one emerges
 
 ---
 
+## Architecture Principles
+
+These principles govern every implementation decision.
+
+**Business logic is framework-independent.**
+`packages/core` contains only pure TypeScript functions. It has no dependency on Vue, Pinia, or Home Assistant. It can be tested without a browser, a DOM, or a running HA instance.
+
+**Providers isolate external systems.**
+The boundary between Home Assistant and Cardinal is the provider interface. Raw HA entity data never crosses this boundary. Only Cardinal domain models are passed upstream. Swapping a data source means writing a new provider, not touching core or UI.
+
+**Components present only.**
+Vue components read from Pinia stores and render the result. They never calculate, derive, or transform data. Business logic belongs in `packages/core`. Data access belongs in stores.
+
+**Single source of truth.**
+Application state lives in Pinia stores. The same value is never stored in two places. Components do not hold their own copies of store data.
+
+**Explicit over implicit.**
+Entity mappings are user-confirmed, not silently inferred. Calculations are surfaced, not hidden. When Cardinal cannot explain a value, it should not display it.
+
+---
+
+## User Experience
+
+Cardinal is an explanation engine, not an energy dashboard.
+
+A dashboard reports what sensors say. Cardinal explains what is happening.
+
+Every screen answers a question a person naturally asks. Every number exists because it answers something — not because the data is available. If a value requires the user to interpret it, the interface has failed.
+
+The primary output of Cardinal is language. Visualisations and numbers support the explanation; they do not replace it. A user should be able to understand the current state of their home by reading one sentence, then explore further if they choose.
+
+Complexity is always optional. Simple users get simple answers. Advanced users can drill deeper. The default state is always the simplest correct answer.
+
+---
+
 ## Toolchain
 
 | Concern | Tool |
@@ -152,15 +187,18 @@ There is no separate `packages/types` package. If a genuine need for one emerges
 
 No additional tooling should be introduced without a clear, demonstrated need.
 
+---
+
 ## Resilience
 
-Cardinal should continue operating whenever possible.
+Cardinal should remain useful even when data is incomplete.
 
-Unavailable data sources should degrade gracefully.
+- If an entity is unavailable or returns an invalid state, Cardinal treats it as `0` or `unknown` rather than throwing.
+- Missing sensors produce explanatory messages ("Solar data is unavailable") rather than application errors or blank screens.
+- The UI clearly communicates when information is unavailable and why, so the user knows what to fix.
+- No single missing entity should prevent the rest of the application from rendering.
 
-Missing sensors should produce explanatory messages rather than application errors.
-
-The UI should clearly communicate when information is unavailable and why.
+Resilience is not an afterthought. Every provider translation and every store getter must handle `undefined` and `NaN` inputs explicitly.
 
 ---
 

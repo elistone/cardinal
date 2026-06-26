@@ -1,0 +1,32 @@
+{
+  "name": "@cardinal/ui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "lint": "echo \"No linter configured yet\""
+  },
+  "dependencies": {
+    "@cardinal/domain": "workspace:*",
+    "vue": "^3.5.17"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^2.2.12"
+  }
+}

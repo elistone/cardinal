@@ -180,6 +180,28 @@ describe('describeEnergyState', () => {
       expect(detail).toContain('grid')
     })
 
+    it('battery_charging_grid: mentions charge % and charging rate', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(0),
+        battery: makeBattery({ chargingWatts: 2500, chargePercent: 30 }),
+        grid: makeGrid({ importingWatts: 2500 }),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('30%')
+      expect(detail).toContain('charging at')
+    })
+
+    it('battery_discharging (with grid): mentions charge % and discharge watts', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(0),
+        battery: makeBattery({ dischargingWatts: 1000, chargePercent: 60 }),
+        grid: makeGrid({ importingWatts: 500 }),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('60%')
+      expect(detail).toContain('supplying')
+    })
+
     it('battery_discharging (no grid): mentions charge % and supplying watts', () => {
       const snapshot = makeSnapshot({
         solar: makeSolar(0),

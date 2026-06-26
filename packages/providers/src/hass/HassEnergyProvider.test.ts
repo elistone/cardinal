@@ -25,12 +25,29 @@ function makeEntities(...entries: HassState[]): Record<string, HassState> {
 
 describe('HassEnergyProvider', () => {
   const mockUnsubscribe = vi.fn()
-  const mockConnection = {} as HassConnection
+
+  type EventType = 'ready' | 'disconnected' | 'reconnect-error'
+  const connectionEventListeners = new Map<EventType, Set<() => void>>()
+
+  const mockConnection = {
+    addEventListener: vi.fn((type: EventType, cb: () => void) => {
+      if (!connectionEventListeners.has(type)) connectionEventListeners.set(type, new Set())
+      connectionEventListeners.get(type)!.add(cb)
+    }),
+    removeEventListener: vi.fn((type: EventType, cb: () => void) => {
+      connectionEventListeners.get(type)?.delete(cb)
+    }),
+  } as unknown as HassConnection
+
+  function triggerConnectionEvent(type: EventType): void {
+    connectionEventListeners.get(type)?.forEach((cb) => cb())
+  }
 
   let triggerUpdate!: (entities: Record<string, HassState>) => void
 
   beforeEach(() => {
     mockUnsubscribe.mockReset()
+    connectionEventListeners.clear()
     vi.mocked(subscribeEntities).mockImplementation((_conn, callback) => {
       triggerUpdate = callback as (entities: Record<string, HassState>) => void
       return mockUnsubscribe
@@ -243,6 +260,63 @@ describe('HassEnergyProvider', () => {
       triggerUpdate(makeEntities(makeState('sensor.pv_power', '1000')))
 
       expect(healthCallback).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('connection status callbacks', () => {
+    it('calls onConnectionStatus with "connected" when HA fires the ready event', () => {
+      const provider = new HassEnergyProvider(mockConnection, { currency: 'GBP' })
+      const statusCallback = vi.fn()
+      provider.onConnectionStatus(statusCallback)
+
+      triggerConnectionEvent('ready')
+
+      expect(statusCallback).toHaveBeenCalledWith('connected')
+    })
+
+    it('calls onConnectionStatus with "disconnected" when HA fires the disconnected event', () => {
+      const provider = new HassEnergyProvider(mockConnection, { currency: 'GBP' })
+      const statusCallback = vi.fn()
+      provider.onConnectionStatus(statusCallback)
+
+      triggerConnectionEvent('disconnected')
+
+      expect(statusCallback).toHaveBeenCalledWith('disconnected')
+    })
+
+    it('calls multiple registered status callbacks', () => {
+      const provider = new HassEnergyProvider(mockConnection, { currency: 'GBP' })
+      const cb1 = vi.fn()
+      const cb2 = vi.fn()
+      provider.onConnectionStatus(cb1)
+      provider.onConnectionStatus(cb2)
+
+      triggerConnectionEvent('ready')
+
+      expect(cb1).toHaveBeenCalledWith('connected')
+      expect(cb2).toHaveBeenCalledWith('connected')
+    })
+
+    it('stops invoking a status callback after its unsubscribe is called', () => {
+      const provider = new HassEnergyProvider(mockConnection, { currency: 'GBP' })
+      const statusCallback = vi.fn()
+      const unsub = provider.onConnectionStatus(statusCallback)
+
+      unsub()
+      triggerConnectionEvent('ready')
+
+      expect(statusCallback).not.toHaveBeenCalled()
+    })
+
+    it('removes HA event listeners on disconnect', () => {
+      const provider = new HassEnergyProvider(mockConnection, { currency: 'GBP' })
+      const statusCallback = vi.fn()
+      provider.onConnectionStatus(statusCallback)
+
+      provider.disconnect()
+      triggerConnectionEvent('ready')
+
+      expect(statusCallback).not.toHaveBeenCalled()
     })
   })
 

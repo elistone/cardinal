@@ -47,14 +47,18 @@ const displayUnit = () => {
       <div class="metric-card__skeleton metric-card__skeleton--label" aria-hidden="true" />
     </template>
     <template v-else>
-      <div class="metric-card__value-row">
-        <span class="metric-card__value" aria-live="polite">{{ displayValue() }}</span>
+      <!-- Visually-hidden live region announces full reading with label context when value changes -->
+      <span class="metric-card__sr-announce" aria-live="polite" aria-atomic="true">
+        {{ value !== null ? `${label}: ${displayValue()} ${displayUnit()}` : `${label}: unavailable` }}
+      </span>
+      <div class="metric-card__value-row" aria-hidden="true">
+        <span class="metric-card__value">{{ displayValue() }}</span>
         <span v-if="displayUnit()" class="metric-card__unit">{{ displayUnit() }}</span>
       </div>
-      <p v-if="directionLabel" class="metric-card__direction">
+      <p v-if="directionLabel" class="metric-card__direction" aria-hidden="true">
         {{ directionLabel }}
       </p>
-      <p class="metric-card__label">
+      <p class="metric-card__label" aria-hidden="true">
         {{ label }}
       </p>
     </template>
@@ -68,7 +72,7 @@ const displayUnit = () => {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .metric-card::before {
@@ -124,6 +128,19 @@ const displayUnit = () => {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-secondary);
+}
+
+/* Screen-reader only live region — visually hidden but announced by screen readers */
+.metric-card__sr-announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Loading skeletons */

@@ -4,7 +4,8 @@ import { InsightBlock, EnergyFlowDiagram, MetricCard } from '@cardinal/ui'
 
 <template>
   <main class="state-loading" aria-busy="true" aria-label="Loading energy data">
-    <section class="now-section">
+    <p class="sr-only" role="status">Loading energy data…</p>
+    <section class="now-section" aria-hidden="true">
       <h2 class="section-label">NOW</h2>
 
       <InsightBlock
@@ -33,6 +34,18 @@ import { InsightBlock, EnergyFlowDiagram, MetricCard } from '@cardinal/ui'
 .state-loading {
   flex: 1;
   overflow-y: auto;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .now-section {

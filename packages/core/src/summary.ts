@@ -48,8 +48,8 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       confidence: 'high',
       timestamp,
       title: 'Charging from Grid',
-      description: 'Your battery is charging from the grid.',
-      detail: `Battery is at ${battery.chargePercent}%.`,
+      description: 'Your battery is charging using grid power.',
+      detail: `Battery at ${battery.chargePercent}%, charging at ${formatWatts(battery.chargingWatts)}.`,
     }
   }
 
@@ -76,8 +76,8 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       confidence: 'high',
       timestamp,
       title: 'Battery and Grid',
-      description: 'Your battery and the grid are sharing the load.',
-      detail: `Battery is at ${battery.chargePercent}%.`,
+      description: "Battery can't cover all demand — grid is filling the gap.",
+      detail: `Battery at ${battery.chargePercent}%, supplying ${formatWatts(battery.dischargingWatts)}.`,
     }
   }
 
@@ -118,7 +118,7 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       confidence: 'high',
       timestamp,
       title: 'Solar Assist',
-      description: "Solar is covering part of your home's power.",
+      description: 'Solar is reducing your grid draw.',
       detail: `Generating ${formatWatts(solar.generatingWatts)}, importing ${formatWatts(grid.importingWatts)} from the grid.`,
     }
   }

@@ -1,5 +1,5 @@
 import {subscribeEntities} from 'home-assistant-js-websocket'
-import type {DailySummaryCallback, EnergyProvider, HealthCallback, SnapshotCallback} from '../EnergyProvider.js'
+import type {ConnectionStatusCallback, DailySummaryCallback, EnergyProvider, HealthCallback, SnapshotCallback} from '../EnergyProvider.js'
 import type {HassConnection, HassEntityMapping, HassState} from './types.js'
 import {translateDailySummary, translateEnergySnapshot} from './translate.js'
 import {assessConfigurationHealth} from './health.js'
@@ -10,11 +10,22 @@ export class HassEnergyProvider implements EnergyProvider {
   private snapshotCallbacks: Set<SnapshotCallback> = new Set()
   private summaryCallbacks: Set<DailySummaryCallback> = new Set()
   private healthCallbacks: Set<HealthCallback> = new Set()
+  private connectionStatusCallbacks: Set<ConnectionStatusCallback> = new Set()
   private unsubscribe: (() => void) | undefined
+  private readonly onReady: () => void
+  private readonly onDisconnected: () => void
 
   constructor(connection: HassConnection, mapping: HassEntityMapping) {
     this.connection = connection
     this.mapping = mapping
+    this.onReady = () => {
+      this.connectionStatusCallbacks.forEach((cb) => cb('connected'))
+    }
+    this.onDisconnected = () => {
+      this.connectionStatusCallbacks.forEach((cb) => cb('disconnected'))
+    }
+    this.connection.addEventListener('ready', this.onReady)
+    this.connection.addEventListener('disconnected', this.onDisconnected)
     this.subscribe()
   }
 
@@ -79,10 +90,18 @@ export class HassEnergyProvider implements EnergyProvider {
     return () => { this.healthCallbacks.delete(callback) }
   }
 
+  onConnectionStatus(callback: ConnectionStatusCallback): () => void {
+    this.connectionStatusCallbacks.add(callback)
+    return () => { this.connectionStatusCallbacks.delete(callback) }
+  }
+
   disconnect(): void {
+    this.connection.removeEventListener('ready', this.onReady)
+    this.connection.removeEventListener('disconnected', this.onDisconnected)
     this.unsubscribe?.()
     this.snapshotCallbacks.clear()
     this.summaryCallbacks.clear()
     this.healthCallbacks.clear()
+    this.connectionStatusCallbacks.clear()
   }
 }

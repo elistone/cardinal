@@ -18,8 +18,8 @@ defineProps<Props>()
       Reconnecting to Home Assistant…
     </div>
 
-    <!-- Show last-known data dimmed, or a placeholder if no data at all -->
-    <section class="now-section now-section--stale" aria-label="Last known state">
+    <!-- Stale data is aria-hidden: values are not current so should not be announced -->
+    <section class="now-section now-section--stale" aria-hidden="true">
       <h2 class="section-label">NOW</h2>
 
       <template v-if="insight && snapshot">

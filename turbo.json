@@ -29,6 +29,11 @@
     "build-storybook": {
       "dependsOn": ["^build"],
       "outputs": ["storybook-static/**"]
+    },
+    "screenshot": {
+      "dependsOn": ["@cardinal/ui#build-storybook"],
+      "outputs": ["docs/screenshots/**"],
+      "cache": false
     }
   }
 }

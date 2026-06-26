@@ -72,14 +72,8 @@ class CardinalPanel extends HTMLElement {
 
     this._provider = new HassEnergyProvider(this._hass.connection, mapping)
 
-    this._provider.onSnapshot((s) => {
-      store.setSnapshot(s)
-      // Promote to connected on the first data we receive.
-      if (store.connectionStatus !== 'connected') {
-        store.setConnectionStatus('connected')
-      }
-    })
-
+    this._provider.onConnectionStatus((status) => store.setConnectionStatus(status))
+    this._provider.onSnapshot((s) => store.setSnapshot(s))
     this._provider.onDailySummary((summary) => store.setDailySummary(summary))
     this._provider.onHealth((h) => store.setHealth(h))
   }

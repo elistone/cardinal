@@ -8,7 +8,8 @@
     "test": "turbo test",
     "type-check": "turbo type-check",
     "coverage": "turbo coverage",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "screenshot": "turbo build-storybook && pnpm --filter @cardinal/screenshots screenshot"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.0",

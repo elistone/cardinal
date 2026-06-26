@@ -129,9 +129,13 @@ const batteryLabel = computed(() => {
       <svg
         viewBox="0 0 400 380"
         class="energy-flow__svg"
-        aria-label="Energy flow diagram showing power movement between solar, battery, grid and home"
         role="img"
+        aria-labelledby="energy-flow-title energy-flow-desc"
       >
+        <title id="energy-flow-title">Energy flow diagram</title>
+        <desc id="energy-flow-desc">
+          Real-time power flows between solar panels, battery storage, the electricity grid, and your home.
+        </desc>
         <defs>
           <!-- Arrow markers per flow color -->
           <marker

@@ -1,4 +1,4 @@
-import type { EnergySnapshot, BatteryState, GridState } from '@cardinal/domain'
+import type { EnergySnapshot, SolarState, BatteryState, GridState, HomeState } from '@cardinal/domain'
 import type { HassState } from './types.js'
 
 function parseWatts(state: HassState | undefined): number {
@@ -13,54 +13,75 @@ function parseSoc(state: HassState | undefined): number {
   return isNaN(value) ? 0 : Math.min(100, Math.max(0, value))
 }
 
-export function translateBatteryState(options: {
+function translateSolarState(powerState: HassState | undefined): SolarState {
+  const generatingWatts = Math.max(0, parseWatts(powerState))
+  return {
+    generatingWatts,
+    isGenerating: generatingWatts > 0,
+  }
+}
+
+function translateBatteryState(options: {
   powerState?: HassState
   chargePowerState?: HassState
   dischargePowerState?: HassState
   socState?: HassState
 }): BatteryState {
-  let watts: number
+  let chargingWatts: number
+  let dischargingWatts: number
 
   if (options.chargePowerState !== undefined || options.dischargePowerState !== undefined) {
     // Separate charge/discharge sensors (e.g. LuxPower Modbus).
-    // Net watts: positive = charging, negative = discharging.
-    watts = parseWatts(options.chargePowerState) - parseWatts(options.dischargePowerState)
+    chargingWatts = Math.max(0, parseWatts(options.chargePowerState))
+    dischargingWatts = Math.max(0, parseWatts(options.dischargePowerState))
   } else {
-    // Single sensor with sign convention: positive = charging, negative = discharging.
-    watts = parseWatts(options.powerState)
+    // Single sensor: positive = charging, negative = discharging.
+    const net = parseWatts(options.powerState)
+    chargingWatts = net > 0 ? net : 0
+    dischargingWatts = net < 0 ? Math.abs(net) : 0
   }
 
   return {
-    power: { watts },
-    stateOfCharge: parseSoc(options.socState),
-    isCharging: watts > 0,
-    isDischarging: watts < 0,
-    isIdle: watts === 0,
+    chargePercent: parseSoc(options.socState),
+    chargingWatts,
+    dischargingWatts,
+    isCharging: chargingWatts > 0,
+    isDischarging: dischargingWatts > 0,
+    isIdle: chargingWatts === 0 && dischargingWatts === 0,
   }
 }
 
-export function translateGridState(options: {
+function translateGridState(options: {
   powerState?: HassState
   importPowerState?: HassState
   exportPowerState?: HassState
 }): GridState {
+  let importingWatts: number
+  let exportingWatts: number
+
   if (options.importPowerState !== undefined || options.exportPowerState !== undefined) {
     // Separate import/export sensors (e.g. LuxPower Modbus).
-    const importWatts = parseWatts(options.importPowerState)
-    const exportWatts = parseWatts(options.exportPowerState)
-    return {
-      power: { watts: importWatts > 0 ? importWatts : exportWatts },
-      isImporting: importWatts > 0,
-      isExporting: exportWatts > 0,
-    }
+    importingWatts = Math.max(0, parseWatts(options.importPowerState))
+    exportingWatts = Math.max(0, parseWatts(options.exportPowerState))
+  } else {
+    // Single sensor: positive = importing, negative = exporting.
+    const net = parseWatts(options.powerState)
+    importingWatts = net > 0 ? net : 0
+    exportingWatts = net < 0 ? Math.abs(net) : 0
   }
 
-  // Single sensor: positive = importing, negative = exporting.
-  const watts = parseWatts(options.powerState)
   return {
-    power: { watts: Math.abs(watts) },
-    isImporting: watts > 0,
-    isExporting: watts < 0,
+    importingWatts,
+    exportingWatts,
+    isImporting: importingWatts > 0,
+    isExporting: exportingWatts > 0,
+    isIdle: importingWatts === 0 && exportingWatts === 0,
+  }
+}
+
+function translateHomeState(powerState: HassState | undefined): HomeState {
+  return {
+    consumingWatts: Math.max(0, parseWatts(powerState)),
   }
 }
 
@@ -80,7 +101,9 @@ export function translateEnergySnapshot(
 ): EnergySnapshot {
   return {
     timestamp: new Date(),
-    solar: { watts: parseWatts(mapping.solarPower ? states[mapping.solarPower] : undefined) },
+    solar: translateSolarState(
+      mapping.solarPower ? states[mapping.solarPower] : undefined,
+    ),
     battery: translateBatteryState({
       powerState: mapping.batteryPower ? states[mapping.batteryPower] : undefined,
       chargePowerState: mapping.batteryChargePower ? states[mapping.batteryChargePower] : undefined,
@@ -92,6 +115,8 @@ export function translateEnergySnapshot(
       importPowerState: mapping.gridImportPower ? states[mapping.gridImportPower] : undefined,
       exportPowerState: mapping.gridExportPower ? states[mapping.gridExportPower] : undefined,
     }),
-    home: { watts: parseWatts(mapping.homeConsumption ? states[mapping.homeConsumption] : undefined) },
+    home: translateHomeState(
+      mapping.homeConsumption ? states[mapping.homeConsumption] : undefined,
+    ),
   }
 }

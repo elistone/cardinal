@@ -1,13 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { EnergySnapshot, DailyEnergySummary, StateSummary } from '@cardinal/domain'
+import type { EnergySnapshot, DailySummary, DailyFinancials, EnergyInsight } from '@cardinal/domain'
 import { describeEnergyState } from '@cardinal/core'
 
 export const useEnergyStore = defineStore('energy', () => {
   const snapshot = ref<EnergySnapshot | null>(null)
-  const dailySummary = ref<DailyEnergySummary | null>(null)
+  const dailySummary = ref<DailySummary | null>(null)
+  const dailyFinancials = ref<DailyFinancials | null>(null)
 
-  const stateSummary = computed<StateSummary | null>(() =>
+  const insight = computed<EnergyInsight | null>(() =>
     snapshot.value ? describeEnergyState(snapshot.value) : null,
   )
 
@@ -15,9 +16,21 @@ export const useEnergyStore = defineStore('energy', () => {
     snapshot.value = incoming
   }
 
-  function setDailySummary(incoming: DailyEnergySummary): void {
+  function setDailySummary(incoming: DailySummary): void {
     dailySummary.value = incoming
   }
 
-  return { snapshot, dailySummary, stateSummary, setSnapshot, setDailySummary }
+  function setDailyFinancials(incoming: DailyFinancials): void {
+    dailyFinancials.value = incoming
+  }
+
+  return {
+    snapshot,
+    dailySummary,
+    dailyFinancials,
+    insight,
+    setSnapshot,
+    setDailySummary,
+    setDailyFinancials,
+  }
 })

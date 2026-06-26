@@ -1,6 +1,6 @@
 <template>
   <div class="cardinal">
-    <p v-if="stateSummary">{{ stateSummary.headline }}</p>
+    <p v-if="insight">{{ insight.headline }}</p>
     <p v-else>Loading…</p>
   </div>
 </template>
@@ -9,7 +9,7 @@
 import { storeToRefs } from 'pinia'
 import { useEnergyStore } from './stores/energy'
 
-const { stateSummary } = storeToRefs(useEnergyStore())
+const { insight } = storeToRefs(useEnergyStore())
 </script>
 
 <style>

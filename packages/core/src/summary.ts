@@ -1,35 +1,73 @@
-import type { EnergySnapshot, StateSummary } from '@cardinal/domain'
+import type { EnergySnapshot, EnergyInsight } from '@cardinal/domain'
 
-export function describeEnergyState(snapshot: EnergySnapshot): StateSummary {
-  const { solar, battery, grid, home } = snapshot
+/**
+ * Derives a human-readable EnergyInsight from a live EnergySnapshot.
+ *
+ * Evaluates the snapshot in priority order — the first matching condition
+ * wins. The ordering reflects what a homeowner cares most about seeing.
+ */
+export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
+  const { solar, battery, grid } = snapshot
 
-  if (battery.isCharging && solar.watts > home.watts) {
-    return { headline: 'Your battery is charging from excess solar.' }
+  if (battery.isCharging && solar.isGenerating && solar.generatingWatts > battery.chargingWatts) {
+    return {
+      type: 'battery_charging_solar',
+      headline: 'Your battery is charging from excess solar.',
+      sentiment: 'positive',
+    }
   }
 
   if (battery.isCharging && grid.isImporting) {
-    return { headline: 'Your battery is charging from the grid.' }
+    return {
+      type: 'battery_charging_grid',
+      headline: 'Your battery is charging from the grid.',
+      sentiment: 'neutral',
+    }
   }
 
   if (battery.isDischarging && !grid.isImporting) {
-    return { headline: 'Your home is running on battery and solar.' }
+    return {
+      type: 'battery_discharging',
+      headline: 'Your home is running on battery and solar.',
+      sentiment: 'positive',
+    }
   }
 
   if (battery.isDischarging && grid.isImporting) {
-    return { headline: 'Your battery and the grid are powering your home.' }
+    return {
+      type: 'battery_discharging',
+      headline: 'Your battery and the grid are powering your home.',
+      sentiment: 'neutral',
+    }
   }
 
-  if (solar.watts > home.watts && grid.isExporting) {
-    return { headline: 'You\'re generating more solar than you\'re using.' }
+  if (solar.isGenerating && grid.isExporting) {
+    return {
+      type: 'solar_exporting',
+      headline: "You're generating more solar than you're using.",
+      sentiment: 'positive',
+    }
   }
 
-  if (solar.watts > 0 && !grid.isImporting) {
-    return { headline: 'Your home is running entirely on solar.' }
+  if (solar.isGenerating && !grid.isImporting) {
+    return {
+      type: 'solar_covering',
+      headline: 'Your home is running entirely on solar.',
+      sentiment: 'positive',
+    }
   }
 
-  if (solar.watts > 0 && grid.isImporting) {
-    return { headline: 'Solar is covering most of your home\'s power.' }
+  if (solar.isGenerating && grid.isImporting) {
+    return {
+      type: 'solar_covering',
+      headline: "Solar is covering most of your home's power.",
+      sentiment: 'positive',
+    }
   }
 
-  return { headline: 'Your home is running on grid power.' }
+  return {
+    type: 'grid_importing',
+    headline: 'Your home is running on grid power.',
+    sentiment: 'neutral',
+  }
 }

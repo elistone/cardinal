@@ -1,6 +1,6 @@
 import { subscribeEntities } from 'home-assistant-js-websocket'
-import type { EnergySnapshot, DailyEnergySummary } from '@cardinal/domain'
-import type { EnergyProvider, SnapshotCallback, SummaryCallback } from '../EnergyProvider.js'
+import type { EnergySnapshot } from '@cardinal/domain'
+import type { EnergyProvider, SnapshotCallback, DailySummaryCallback } from '../EnergyProvider.js'
 import type { HassConnection, HassEntityMapping, HassState } from './types.js'
 import { translateEnergySnapshot } from './translate.js'
 
@@ -8,7 +8,7 @@ export class HassEnergyProvider implements EnergyProvider {
   private readonly connection: HassConnection
   private readonly mapping: HassEntityMapping
   private snapshotCallbacks: Set<SnapshotCallback> = new Set()
-  private summaryCallbacks: Set<SummaryCallback> = new Set()
+  private summaryCallbacks: Set<DailySummaryCallback> = new Set()
   private unsubscribe: (() => void) | undefined
 
   constructor(connection: HassConnection, mapping: HassEntityMapping) {
@@ -58,7 +58,7 @@ export class HassEnergyProvider implements EnergyProvider {
     return () => { this.snapshotCallbacks.delete(callback) }
   }
 
-  onDailySummary(callback: SummaryCallback): () => void {
+  onDailySummary(callback: DailySummaryCallback): () => void {
     this.summaryCallbacks.add(callback)
     return () => { this.summaryCallbacks.delete(callback) }
   }

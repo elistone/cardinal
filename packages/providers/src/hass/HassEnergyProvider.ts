@@ -1,8 +1,7 @@
-import { subscribeEntities } from 'home-assistant-js-websocket'
-import type { EnergySnapshot } from '@cardinal/domain'
-import type { EnergyProvider, SnapshotCallback, DailySummaryCallback } from '../EnergyProvider.js'
-import type { HassConnection, HassEntityMapping, HassState } from './types.js'
-import { translateEnergySnapshot } from './translate.js'
+import {subscribeEntities} from 'home-assistant-js-websocket'
+import type {DailySummaryCallback, EnergyProvider, SnapshotCallback} from '../EnergyProvider.js'
+import type {HassConnection, HassEntityMapping, HassState} from './types.js'
+import {translateEnergySnapshot} from './translate.js'
 
 export class HassEnergyProvider implements EnergyProvider {
   private readonly connection: HassConnection
@@ -30,7 +29,7 @@ export class HassEnergyProvider implements EnergyProvider {
       this.mapping.homeConsumption,
     ].filter(Boolean) as string[])
 
-    const unsub = subscribeEntities(this.connection, (entities) => {
+    this.unsubscribe = subscribeEntities(this.connection, (entities) => {
       const relevant = Object.fromEntries(
         Object.entries(entities).filter(([id]) => trackedIds.has(id)),
       ) as Record<string, HassState>
@@ -49,8 +48,6 @@ export class HassEnergyProvider implements EnergyProvider {
 
       this.snapshotCallbacks.forEach((cb) => cb(snapshot))
     })
-
-    this.unsubscribe = unsub
   }
 
   onSnapshot(callback: SnapshotCallback): () => void {

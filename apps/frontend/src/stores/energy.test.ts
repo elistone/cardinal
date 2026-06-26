@@ -158,6 +158,97 @@ describe('useEnergyStore', () => {
     })
   })
 
+  describe('connectionStatus and derived flags', () => {
+    it('starts in connecting status', () => {
+      const store = useEnergyStore()
+      expect(store.connectionStatus).toBe('connecting')
+    })
+
+    it('isLoading is true when connecting and no snapshot', () => {
+      const store = useEnergyStore()
+      expect(store.isLoading).toBe(true)
+    })
+
+    it('isLoading is false once a snapshot arrives', () => {
+      const store = useEnergyStore()
+      store.setSnapshot(makeSnapshot())
+      expect(store.isLoading).toBe(false)
+    })
+
+    it('isLoading is false when connected even without a snapshot', () => {
+      const store = useEnergyStore()
+      store.setConnectionStatus('connected')
+      expect(store.isLoading).toBe(false)
+    })
+
+    it('isDisconnected is false initially', () => {
+      const store = useEnergyStore()
+      expect(store.isDisconnected).toBe(false)
+    })
+
+    it('isDisconnected is true after setConnectionStatus("disconnected")', () => {
+      const store = useEnergyStore()
+      store.setConnectionStatus('disconnected')
+      expect(store.isDisconnected).toBe(true)
+    })
+
+    it('isConfigured is null before health is received', () => {
+      const store = useEnergyStore()
+      expect(store.isConfigured).toBeNull()
+    })
+
+    it('isConfigured is false when all live sensors are missing', () => {
+      const store = useEnergyStore()
+      const missing = { status: 'missing' as const }
+      store.setHealth({
+        live: {
+          solar: missing,
+          batteryCharging: missing,
+          batteryDischarging: missing,
+          batteryLevel: missing,
+          gridImport: missing,
+          gridExport: missing,
+          homeConsumption: missing,
+        },
+        daily: {
+          solarGenerated: missing,
+          batteryCharged: missing,
+          batteryDischarged: missing,
+          gridImported: missing,
+          gridExported: missing,
+          homeConsumed: missing,
+        },
+      })
+      expect(store.isConfigured).toBe(false)
+    })
+
+    it('isConfigured is true when at least one live sensor is configured', () => {
+      const store = useEnergyStore()
+      const configured = { status: 'configured' as const, entityId: 'sensor.pv_power' }
+      const missing = { status: 'missing' as const }
+      store.setHealth({
+        live: {
+          solar: configured,
+          batteryCharging: missing,
+          batteryDischarging: missing,
+          batteryLevel: missing,
+          gridImport: missing,
+          gridExport: missing,
+          homeConsumption: missing,
+        },
+        daily: {
+          solarGenerated: missing,
+          batteryCharged: missing,
+          batteryDischarged: missing,
+          gridImported: missing,
+          gridExported: missing,
+          homeConsumed: missing,
+        },
+      })
+      expect(store.isConfigured).toBe(true)
+    })
+  })
+
   describe('health', () => {
     function makeHealth(): ConfigurationHealth {
       const configured = { status: 'configured' as const, entityId: 'sensor.pv_power' }

@@ -1,5 +1,10 @@
 import type { EnergySnapshot, EnergyInsight } from '@cardinal/domain'
 
+function formatWatts(watts: number): string {
+  if (watts >= 1000) return `${(watts / 1000).toFixed(1)} kW`
+  return `${Math.round(watts)} W`
+}
+
 /**
  * Derives a structured EnergyInsight from a live EnergySnapshot.
  *
@@ -18,6 +23,9 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
   const timestamp = snapshot.timestamp
 
   if (battery.isCharging && solar.isGenerating && solar.generatingWatts > battery.chargingWatts) {
+    const exportClause = grid.isExporting
+      ? ` Also sending ${formatWatts(grid.exportingWatts)} to the grid.`
+      : ''
     return {
       id,
       type: 'battery_charging_solar',
@@ -27,6 +35,7 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       timestamp,
       title: 'Charging from Solar',
       description: 'Your battery is charging from excess solar.',
+      detail: `Battery is at ${battery.chargePercent}% and rising.${exportClause}`,
     }
   }
 
@@ -40,6 +49,7 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       timestamp,
       title: 'Charging from Grid',
       description: 'Your battery is charging from the grid.',
+      detail: `Battery is at ${battery.chargePercent}%.`,
     }
   }
 
@@ -52,7 +62,8 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       confidence: 'high',
       timestamp,
       title: 'Running on Battery',
-      description: 'Your home is running on battery and solar.',
+      description: 'Your home is running on battery power. No grid draw.',
+      detail: `Battery is at ${battery.chargePercent}% and supplying ${formatWatts(battery.dischargingWatts)}.`,
     }
   }
 
@@ -65,7 +76,8 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       confidence: 'high',
       timestamp,
       title: 'Battery and Grid',
-      description: 'Your battery and the grid are powering your home.',
+      description: 'Your battery and the grid are sharing the load.',
+      detail: `Battery is at ${battery.chargePercent}%.`,
     }
   }
 
@@ -78,7 +90,8 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       confidence: 'high',
       timestamp,
       title: 'Exporting Solar',
-      description: "You're generating more solar than you're using.",
+      description: "You're generating more solar than you need.",
+      detail: `Sending ${formatWatts(grid.exportingWatts)} to the grid.`,
     }
   }
 
@@ -92,6 +105,7 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       timestamp,
       title: 'Running on Solar',
       description: 'Your home is running entirely on solar.',
+      detail: `Generating ${formatWatts(solar.generatingWatts)}.`,
     }
   }
 
@@ -104,7 +118,8 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
       confidence: 'high',
       timestamp,
       title: 'Solar Assist',
-      description: "Solar is covering most of your home's power.",
+      description: "Solar is covering part of your home's power.",
+      detail: `Generating ${formatWatts(solar.generatingWatts)}, importing ${formatWatts(grid.importingWatts)} from the grid.`,
     }
   }
 
@@ -117,5 +132,6 @@ export function describeEnergyState(snapshot: EnergySnapshot): EnergyInsight {
     timestamp,
     title: 'Grid Power',
     description: 'Your home is running on grid power.',
+    detail: solar.generatingWatts === 0 ? 'No solar generation right now.' : undefined,
   }
 }

@@ -157,4 +157,80 @@ describe('describeEnergyState', () => {
       expect(insight.type).toBe('grid_importing')
     })
   })
+
+  describe('detail text', () => {
+    it('battery_charging_solar: mentions charge % and rising', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(3000),
+        battery: makeBattery({ chargingWatts: 2000, chargePercent: 45 }),
+        grid: makeGrid(),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('45%')
+      expect(detail).toContain('rising')
+    })
+
+    it('battery_charging_solar: includes grid export clause when exporting', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(4000),
+        battery: makeBattery({ chargingWatts: 2000 }),
+        grid: makeGrid({ exportingWatts: 1000 }),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('grid')
+    })
+
+    it('battery_discharging (no grid): mentions charge % and supplying watts', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(0),
+        battery: makeBattery({ dischargingWatts: 2000, chargePercent: 80 }),
+        grid: makeGrid(),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('80%')
+      expect(detail).toContain('supplying')
+    })
+
+    it('solar_exporting: mentions watts sent to grid', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(5000),
+        battery: makeBattery(),
+        grid: makeGrid({ exportingWatts: 2000 }),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('grid')
+    })
+
+    it('solar_covering (no import): mentions generating watts', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(2000),
+        battery: makeBattery(),
+        grid: makeGrid(),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('Generating')
+    })
+
+    it('solar_covering (with import): mentions both generating and importing', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(1000),
+        battery: makeBattery(),
+        grid: makeGrid({ importingWatts: 500 }),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toContain('Generating')
+      expect(detail).toContain('importing')
+    })
+
+    it('grid_importing: is "No solar generation right now." when no solar', () => {
+      const snapshot = makeSnapshot({
+        solar: makeSolar(0),
+        battery: makeBattery(),
+        grid: makeGrid({ importingWatts: 1000 }),
+        home: makeHome(1000),
+      })
+      const { detail } = describeEnergyState(snapshot)
+      expect(detail).toBe('No solar generation right now.')
+    })
+  })
 })

@@ -64,10 +64,22 @@ class CardinalPanel extends HTMLElement {
     app.mount(this)
 
     const store = useEnergyStore(pinia)
+
+    // Start in connecting state. Status moves to 'connected' on first snapshot.
+    store.setConnectionStatus('connecting')
+
     const mapping = buildMapping(this._panelConfig.entityMapping ?? {})
 
     this._provider = new HassEnergyProvider(this._hass.connection, mapping)
-    this._provider.onSnapshot((snapshot) => store.setSnapshot(snapshot))
+
+    this._provider.onSnapshot((s) => {
+      store.setSnapshot(s)
+      // Promote to connected on the first data we receive.
+      if (store.connectionStatus !== 'connected') {
+        store.setConnectionStatus('connected')
+      }
+    })
+
     this._provider.onDailySummary((summary) => store.setDailySummary(summary))
     this._provider.onHealth((h) => store.setHealth(h))
   }

@@ -15,15 +15,21 @@
     "build": "vite build",
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run",
-    "lint": "echo \"No linter configured yet\""
+    "lint": "eslint src",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@cardinal/domain": "workspace:*",
     "vue": "^3.5.17"
   },
   "devDependencies": {
+    "@storybook/addon-essentials": "8.6.14",
+    "@storybook/vue3": "8.6.14",
+    "@storybook/vue3-vite": "8.6.14",
     "@vitejs/plugin-vue": "^5.2.4",
     "jsdom": "^29.1.1",
+    "storybook": "8.6.14",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-dts": "^4.5.4",

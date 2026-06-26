@@ -16,7 +16,7 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "lint": "echo \"No linter configured yet\""
+    "lint": "eslint src"
   },
   "dependencies": {
     "@cardinal/domain": "workspace:*"

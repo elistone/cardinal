@@ -29,7 +29,7 @@ function buildMapping(raw: CardinalPanelEntityMapping): HassEntityMapping {
   ]
   for (const field of fields) {
     const value = raw[field]
-    if (value) (mapping as Record<string, string>)[field] = value
+    if (value) (mapping as unknown as Record<string, string>)[field] = value
   }
   return mapping
 }

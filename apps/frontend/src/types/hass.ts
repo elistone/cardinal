@@ -1,7 +1,7 @@
-import type { Connection } from 'home-assistant-js-websocket'
+import type { HassConnection } from '@cardinal/providers'
 
 export interface HomeAssistant {
-  connection: Connection
+  connection: HassConnection
   states: Record<string, unknown>
   user: {
     id: string

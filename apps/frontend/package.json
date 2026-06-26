@@ -9,7 +9,7 @@
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
-    "lint": "echo \"No linter configured yet\""
+    "lint": "eslint src"
   },
   "dependencies": {
     "@cardinal/core": "workspace:*",

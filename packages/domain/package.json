@@ -15,7 +15,7 @@
     "build": "tsc -p tsconfig.json",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "echo \"No linter configured yet\""
+    "lint": "eslint src"
   },
   "devDependencies": {
     "typescript": "^5.8.3",

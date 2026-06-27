@@ -16,7 +16,12 @@ export default defineConfig(({ mode }) => {
     // hashed CSS file (assets/main-[hash].css) whose relative path cannot be
     // resolved when HA loads cardinal-panel.js from its panel URL — resulting
     // in all CSS being silently dropped and every CSS variable being undefined.
-    plugins: [vue(), cssInjectedByJsPlugin()],
+    plugins: [
+      vue(),
+      // styleId gives the injected <style> a stable ID so that connectedCallback
+      // in main.ts can find and clone it into the correct shadow root at runtime.
+      cssInjectedByJsPlugin({ styleId: 'cardinal-styles' }),
+    ],
 
     // Always resolve workspace packages from source so Vite processes every
     // Vue SFC end-to-end, including <style scoped> blocks.  Without this,

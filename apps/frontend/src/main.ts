@@ -1,3 +1,25 @@
+/**
+ * Home Assistant custom panel entry point.
+ *
+ * Defines the <cardinal-panel> custom element, which HA renders inside
+ * <ha-panel-custom> — a Lit element that creates its own Shadow DOM.
+ *
+ * Shadow DOM and CSS injection
+ * ─────────────────────────────
+ * Vite's cssInjectedByJsPlugin injects all component CSS into document.head.
+ * CSS in document.head does NOT cross shadow DOM boundaries, so styles injected
+ * there are invisible to elements inside <ha-panel-custom>'s shadow root —
+ * including every element inside <cardinal-panel>.
+ *
+ * connectedCallback() resolves this by cloning the injected <style> element
+ * (identified by id="cardinal-styles") into the shadow root that contains
+ * <cardinal-panel>.  CSS placed inside a shadow root applies to all elements
+ * within it, so the cloned style reaches all component subtrees correctly.
+ *
+ * This does not affect the browser dev runtime (main.dev.ts), which mounts
+ * into a regular <div> in the main document where document.head styles apply.
+ */
+
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
@@ -39,6 +61,20 @@ class CardinalPanel extends HTMLElement {
   private _panelConfig: CardinalPanelConfig | undefined
   private _provider: HassEnergyProvider | undefined
   private _mounted = false
+
+  connectedCallback(): void {
+    // cardinal-panel is rendered inside ha-panel-custom's Shadow DOM.
+    // Clone our injected styles into that shadow root so they apply to
+    // our component tree.  document.head styles are invisible across
+    // shadow boundaries.
+    const root = this.getRootNode()
+    if (root instanceof ShadowRoot && !root.getElementById('cardinal-styles')) {
+      const style = document.getElementById('cardinal-styles')
+      if (style) {
+        root.insertBefore(style.cloneNode(true), root.firstChild)
+      }
+    }
+  }
 
   set hass(hass: HomeAssistant) {
     this._hass = hass

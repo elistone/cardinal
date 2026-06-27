@@ -21,6 +21,9 @@ const bundlePath = resolve(
   '../../integration/custom_components/cardinal/frontend/cardinal-panel.js',
 )
 
+// CSS class selectors that must be present as actual rules in the injected CSS.
+// Searching with the leading dot distinguishes CSS rules from JS template strings
+// (template code uses the class name without a dot, e.g. "metric-card").
 const REQUIRED_SELECTORS = [
   '.metric-card',
   '.insight-block',
@@ -28,6 +31,12 @@ const REQUIRED_SELECTORS = [
   '.sensor-health',
   '.now-panel',
   '.cardinal-app',
+]
+
+// The injected <style> must have a stable ID so connectedCallback() can clone
+// it into the correct shadow root at runtime.
+const REQUIRED_STRINGS = [
+  '"cardinal-styles"',
 ]
 
 if (!existsSync(bundlePath)) {
@@ -41,6 +50,7 @@ const bundle = readFileSync(bundlePath, 'utf8')
 let passed = 0
 let failed = 0
 
+console.log('CSS selectors:')
 for (const selector of REQUIRED_SELECTORS) {
   if (bundle.includes(selector)) {
     console.log(`  ✓ ${selector}`)
@@ -51,17 +61,26 @@ for (const selector of REQUIRED_SELECTORS) {
   }
 }
 
+console.log('\nShadow DOM injection:')
+for (const str of REQUIRED_STRINGS) {
+  if (bundle.includes(str)) {
+    console.log(`  ✓ ${str}`)
+    passed++
+  } else {
+    console.error(`  ✗ ${str}  (missing — styles will not be cloned into shadow root)`)
+    failed++
+  }
+}
+
 console.log()
+
+const total = REQUIRED_SELECTORS.length + REQUIRED_STRINGS.length
 
 if (failed > 0) {
   console.error(
-    `Bundle verification failed: ${failed} selector${failed === 1 ? '' : 's'} missing from production build.`,
+    `\nBundle verification failed: ${failed}/${total} check${failed === 1 ? '' : 's'} did not pass.`,
   )
-  console.error(
-    'This usually means a component\'s CSS was not processed by Vite.',
-  )
-  console.error('Check that all @cardinal/* packages are aliased to source in vite.config.ts.')
   process.exit(1)
 }
 
-console.log(`Bundle verification passed (${passed}/${passed} selectors present).`)
+console.log(`\nBundle verification passed (${passed}/${total}).`)

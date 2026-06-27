@@ -85,7 +85,9 @@ cp .env.example .env.local
 pnpm local:deploy
 ```
 
-The script builds the frontend, then rsyncs `apps/integration/custom_components/cardinal/` to `HA_CONFIG_PATH/custom_components/cardinal/` via SSH. After it completes, restart Home Assistant to pick up the changes.
+The script builds the frontend, removes the existing remote installation, then copies `apps/integration/custom_components/cardinal/` to `HA_CONFIG_PATH/custom_components/cardinal/` via `scp`. After it completes, restart Home Assistant to pick up the changes.
+
+`scp` is the default because it works on a standard Home Assistant OS installation with no extra packages. Set `HA_DEPLOY_METHOD=rsync` in `.env.local` if rsync is available on your host and you prefer incremental transfers.
 
 **Auto-restart (HAOS only):**
 

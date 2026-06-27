@@ -21,6 +21,14 @@
       "outputs": ["coverage/**"]
     },
     "lint": {},
+    "verify:bundle": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "dev:ha": {
+      "cache": false,
+      "persistent": true
+    },
     "storybook": {
       "cache": false,
       "persistent": true,

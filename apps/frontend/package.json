@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch --mode development",
+    "dev": "vite",
+    "dev:ha": "vite build --watch --mode development",
+    "verify:bundle": "node scripts/verify-bundle.mjs",
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run",
     "coverage": "vitest run --coverage",

@@ -18,18 +18,20 @@ export default defineConfig(({ mode }) => {
     // in all CSS being silently dropped and every CSS variable being undefined.
     plugins: [vue(), cssInjectedByJsPlugin()],
 
-    // In dev mode, resolve workspace packages directly from source so that
-    // Vite's watcher covers the full source tree — no pre-build step needed
-    // and edits to any package trigger an immediate rebuild.
+    // Always resolve workspace packages from source so Vite processes every
+    // Vue SFC end-to-end, including <style scoped> blocks.  Without this,
+    // production builds resolve @cardinal/ui to its pre-built dist/index.js,
+    // whose CSS was extracted to dist/index.css by the library build — a file
+    // the frontend app never imports.  cssInjectedByJsPlugin only injects CSS
+    // that Vite itself collected, so all component styles would be silently
+    // dropped from the bundle.
     resolve: {
-      alias: isDev
-        ? {
-            '@cardinal/domain': path.join(packagesDir, 'domain/src/index.ts'),
-            '@cardinal/core': path.join(packagesDir, 'core/src/index.ts'),
-            '@cardinal/providers': path.join(packagesDir, 'providers/src/index.ts'),
-            '@cardinal/ui': path.join(packagesDir, 'ui/src/index.ts'),
-          }
-        : {},
+      alias: {
+        '@cardinal/domain': path.join(packagesDir, 'domain/src/index.ts'),
+        '@cardinal/core': path.join(packagesDir, 'core/src/index.ts'),
+        '@cardinal/providers': path.join(packagesDir, 'providers/src/index.ts'),
+        '@cardinal/ui': path.join(packagesDir, 'ui/src/index.ts'),
+      },
     },
 
     build: {

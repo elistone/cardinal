@@ -9,6 +9,7 @@
     "type-check": "turbo type-check",
     "coverage": "turbo coverage",
     "lint": "turbo lint",
+    "verify:bundle": "turbo verify:bundle",
     "screenshot": "turbo build-storybook && pnpm --filter @cardinal/screenshots screenshot",
     "package": "node scripts/package.mjs",
     "local:deploy": "node scripts/local-deploy.mjs"

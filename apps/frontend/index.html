@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cardinal — Dev</title>
+    <style>
+      /* In the HA panel, box-sizing and height resets are scoped to
+         cardinal-panel in App.vue globals.  In the standalone dev runtime,
+         apply equivalent resets to the document itself. */
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      #app { height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.dev.ts"></script>
+  </body>
+</html>

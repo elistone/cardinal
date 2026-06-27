@@ -28,45 +28,58 @@ function makeHealth(status: 'configured' | 'missing' = 'configured'): Configurat
   }
 }
 
+function defaultProps(overrides: Partial<{ health: ConfigurationHealth | null; isDisconnected: boolean; showDiagnostics: boolean }> = {}) {
+  return { health: null, isDisconnected: false, showDiagnostics: false, ...overrides }
+}
+
 describe('AppHeader', () => {
   describe('wordmark', () => {
     it('renders the Cardinal wordmark', () => {
-      render(AppHeader, { props: { health: null, isDisconnected: false } })
+      render(AppHeader, { props: defaultProps() })
       expect(screen.getByText('Cardinal')).toBeDefined()
     })
   })
 
   describe('health button', () => {
-    it('renders the health button when health data is available', () => {
-      render(AppHeader, {
-        props: { health: makeHealth('configured'), isDisconnected: false },
-      })
-      const btn = screen.getByRole('button')
+    it('renders the sensor health button when health data is available', () => {
+      render(AppHeader, { props: defaultProps({ health: makeHealth('configured') }) })
+      const btn = screen.getByLabelText(/Sensor health/)
       expect(btn).toBeDefined()
     })
 
-    it('does not render the health button when health is null', () => {
-      render(AppHeader, { props: { health: null, isDisconnected: false } })
-      expect(screen.queryByRole('button')).toBeNull()
+    it('does not render the sensor health button when health is null', () => {
+      render(AppHeader, { props: defaultProps() })
+      expect(screen.queryByLabelText(/Sensor health/)).toBeNull()
     })
 
     it('includes "Sensor health" in the button aria-label', () => {
-      render(AppHeader, {
-        props: { health: makeHealth('configured'), isDisconnected: false },
-      })
-      const btn = screen.getByRole('button')
+      render(AppHeader, { props: defaultProps({ health: makeHealth('configured') }) })
+      const btn = screen.getByLabelText(/Sensor health/)
       expect(btn.getAttribute('aria-label')).toContain('Sensor health')
+    })
+  })
+
+  describe('diagnostics button', () => {
+    it('always renders the diagnostics button', () => {
+      render(AppHeader, { props: defaultProps() })
+      expect(screen.getByLabelText('Show diagnostics')).toBeDefined()
+    })
+
+    it('reflects active state via aria-pressed and label', () => {
+      render(AppHeader, { props: defaultProps({ showDiagnostics: true }) })
+      const btn = screen.getByLabelText('Hide diagnostics')
+      expect(btn.getAttribute('aria-pressed')).toBe('true')
     })
   })
 
   describe('disconnected state', () => {
     it('shows reconnecting badge when disconnected', () => {
-      render(AppHeader, { props: { health: null, isDisconnected: true } })
+      render(AppHeader, { props: defaultProps({ isDisconnected: true }) })
       expect(screen.getByText('Reconnecting…')).toBeDefined()
     })
 
     it('does not show reconnecting badge when connected', () => {
-      render(AppHeader, { props: { health: null, isDisconnected: false } })
+      render(AppHeader, { props: defaultProps() })
       expect(screen.queryByText('Reconnecting…')).toBeNull()
     })
   })

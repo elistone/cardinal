@@ -5,6 +5,8 @@ interface Props {
   status: SensorHealthStatus
   label: string
   entityId?: string
+  value?: number | null
+  unit?: string | null
 }
 
 defineProps<Props>()
@@ -25,7 +27,10 @@ const statusLabels: Record<SensorHealthStatus, string> = {
   >
     <span class="sensor-health-badge__dot" aria-hidden="true" />
     <span class="sensor-health-badge__concept">{{ label }}</span>
-    <span class="sensor-health-badge__status">{{ statusLabels[status] }}</span>
+    <span v-if="value != null" class="sensor-health-badge__value">
+      {{ value.toLocaleString(undefined, { maximumFractionDigits: 1 }) }}<template v-if="unit">&nbsp;{{ unit }}</template>
+    </span>
+    <span v-else class="sensor-health-badge__status">{{ statusLabels[status] }}</span>
     <span v-if="entityId" class="sensor-health-badge__entity">{{ entityId }}</span>
   </div>
 </template>
@@ -84,6 +89,14 @@ const statusLabels: Record<SensorHealthStatus, string> = {
 
 .sensor-health-badge--invalid .sensor-health-badge__status {
   color: var(--color-health-invalid);
+}
+
+.sensor-health-badge__value {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  margin-left: auto;
 }
 
 .sensor-health-badge__entity {

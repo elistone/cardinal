@@ -17,6 +17,10 @@ export interface ConceptHealth {
   readonly status: SensorHealthStatus
   /** The entity ID being used for this concept. Undefined when status is 'missing'. */
   readonly entityId?: string
+  /** Current numeric value reported by the entity. Null when unavailable or missing. */
+  readonly value?: number | null
+  /** Unit of measurement (e.g. "W", "kWh", "%"). Null when unavailable or missing. */
+  readonly unit?: string | null
 }
 
 /**

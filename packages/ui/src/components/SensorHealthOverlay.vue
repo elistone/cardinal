@@ -39,26 +39,30 @@ interface SensorRow {
   concept: string
   status: SensorHealthStatus
   entityId?: string
+  value?: number | null
+  unit?: string | null
+}
+
+function row(concept: string, h: { status: SensorHealthStatus; entityId?: string; value?: number | null; unit?: string | null }): SensorRow {
+  return { concept, status: h.status, entityId: h.entityId, value: h.value, unit: h.unit }
 }
 
 function buildRows(health: ConfigurationHealth): SensorRow[] {
-  const live = health.live
-  const daily = health.daily
-
+  const { live, daily } = health
   return [
-    { concept: 'Solar power', status: live.solar.status, entityId: live.solar.entityId },
-    { concept: 'Battery charging', status: live.batteryCharging.status, entityId: live.batteryCharging.entityId },
-    { concept: 'Battery discharging', status: live.batteryDischarging.status, entityId: live.batteryDischarging.entityId },
-    { concept: 'Battery level', status: live.batteryLevel.status, entityId: live.batteryLevel.entityId },
-    { concept: 'Grid import', status: live.gridImport.status, entityId: live.gridImport.entityId },
-    { concept: 'Grid export', status: live.gridExport.status, entityId: live.gridExport.entityId },
-    { concept: 'Home consumption', status: live.homeConsumption.status, entityId: live.homeConsumption.entityId },
-    { concept: 'Solar generated today', status: daily.solarGenerated.status, entityId: daily.solarGenerated.entityId },
-    { concept: 'Battery charged today', status: daily.batteryCharged.status, entityId: daily.batteryCharged.entityId },
-    { concept: 'Battery discharged today', status: daily.batteryDischarged.status, entityId: daily.batteryDischarged.entityId },
-    { concept: 'Grid imported today', status: daily.gridImported.status, entityId: daily.gridImported.entityId },
-    { concept: 'Grid exported today', status: daily.gridExported.status, entityId: daily.gridExported.entityId },
-    { concept: 'Home consumed today', status: daily.homeConsumed.status, entityId: daily.homeConsumed.entityId },
+    row('Solar power',            live.solar),
+    row('Battery charging',       live.batteryCharging),
+    row('Battery discharging',    live.batteryDischarging),
+    row('Battery level',          live.batteryLevel),
+    row('Grid import',            live.gridImport),
+    row('Grid export',            live.gridExport),
+    row('Home consumption',       live.homeConsumption),
+    row('Solar generated today',  daily.solarGenerated),
+    row('Battery charged today',  daily.batteryCharged),
+    row('Battery discharged today', daily.batteryDischarged),
+    row('Grid imported today',    daily.gridImported),
+    row('Grid exported today',    daily.gridExported),
+    row('Home consumed today',    daily.homeConsumed),
   ]
 }
 </script>
@@ -107,6 +111,8 @@ function buildRows(health: ConfigurationHealth): SensorRow[] {
                   :status="row.status"
                   :label="row.concept"
                   :entity-id="row.entityId"
+                  :value="row.value"
+                  :unit="row.unit"
                 />
               </li>
             </ul>
@@ -124,6 +130,8 @@ function buildRows(health: ConfigurationHealth): SensorRow[] {
                   :status="row.status"
                   :label="row.concept"
                   :entity-id="row.entityId"
+                  :value="row.value"
+                  :unit="row.unit"
                 />
               </li>
             </ul>

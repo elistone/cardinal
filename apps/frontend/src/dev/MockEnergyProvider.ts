@@ -81,7 +81,9 @@ export class MockEnergyProvider implements EnergyProvider {
   private scenarioIndex = 0
 
   private currentSnapshot(): EnergySnapshot {
-    return { ...SCENARIOS[this.scenarioIndex], timestamp: new Date() }
+    // scenarioIndex is always in-bounds (maintained by modulo in the interval),
+    // but noUncheckedIndexedAccess requires an explicit assertion.
+    return { ...SCENARIOS[this.scenarioIndex]!, timestamp: new Date() }
   }
 
   onSnapshot(cb: SnapshotCallback): () => void {

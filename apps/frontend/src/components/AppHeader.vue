@@ -4,10 +4,11 @@ import type { ConfigurationHealth, SensorHealthStatus } from '@cardinal/domain'
 interface Props {
   health: ConfigurationHealth | null
   isDisconnected: boolean
+  showDiagnostics: boolean
 }
 
 defineProps<Props>()
-defineEmits<{ openHealth: [] }>()
+defineEmits<{ openHealth: []; toggleDiagnostics: [] }>()
 
 function overallStatus(health: ConfigurationHealth): SensorHealthStatus {
   const statuses = [
@@ -51,6 +52,15 @@ const statusColors: Record<SensorHealthStatus, string> = {
         />
         <span class="app-header__health-label">Sensors</span>
       </button>
+
+      <button
+        class="app-header__diag-btn"
+        :class="{ 'app-header__diag-btn--active': showDiagnostics }"
+        :aria-label="showDiagnostics ? 'Hide diagnostics' : 'Show diagnostics'"
+        :aria-pressed="showDiagnostics"
+        title="Developer diagnostics"
+        @click="$emit('toggleDiagnostics')"
+      >⚙</button>
     </div>
   </header>
 </template>
@@ -123,5 +133,31 @@ const statusColors: Record<SensorHealthStatus, string> = {
   .app-header__health-label {
     display: inline;
   }
+}
+
+.app-header__diag-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-subdued);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.app-header__diag-btn:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+}
+
+.app-header__diag-btn--active {
+  background: var(--color-surface-raised);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-text-primary);
 }
 </style>

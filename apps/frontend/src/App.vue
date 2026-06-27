@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEnergyStore } from './stores/energy'
-import { NowPanel, SensorHealthOverlay } from '@cardinal/ui'
+import { NowPanel, SensorHealthOverlay, DiagnosticsPanel } from '@cardinal/ui'
 import AppHeader from './components/AppHeader.vue'
 import StateNoConfiguration from './components/StateNoConfiguration.vue'
 import StateDisconnected from './components/StateDisconnected.vue'
@@ -11,6 +11,7 @@ const store = useEnergyStore()
 const { snapshot, insight, health, isDisconnected, isConfigured } = storeToRefs(store)
 
 const healthOverlayOpen = ref(false)
+const showDiagnostics = ref(false)
 </script>
 
 <template>
@@ -18,7 +19,9 @@ const healthOverlayOpen = ref(false)
     <AppHeader
       :health="health"
       :is-disconnected="isDisconnected"
+      :show-diagnostics="showDiagnostics"
       @open-health="healthOverlayOpen = true"
+      @toggle-diagnostics="showDiagnostics = !showDiagnostics"
     />
 
     <!-- Not configured: entity mapping is empty -->
@@ -36,6 +39,13 @@ const healthOverlayOpen = ref(false)
       v-else
       :snapshot="snapshot"
       :insight="insight"
+      :health="health"
+    />
+
+    <!-- Developer diagnostics (hidden by default, toggled via ⚙ in header) -->
+    <DiagnosticsPanel
+      v-if="showDiagnostics"
+      :snapshot="snapshot"
       :health="health"
     />
 

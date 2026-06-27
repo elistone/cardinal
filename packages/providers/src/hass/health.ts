@@ -12,10 +12,12 @@ function assessConcept(
   if (!hassState || UNAVAILABLE_STATES.has(hassState.state)) {
     return { status: 'unavailable', entityId }
   }
-  if (isNaN(parseFloat(hassState.state))) {
+  const numValue = parseFloat(hassState.state)
+  if (isNaN(numValue)) {
     return { status: 'invalid', entityId }
   }
-  return { status: 'configured', entityId }
+  const unit = (hassState.attributes['unit_of_measurement'] as string | undefined) ?? null
+  return { status: 'configured', entityId, value: numValue, unit }
 }
 
 // For dual-convention sensors (separate vs. signed), the separate sensor takes

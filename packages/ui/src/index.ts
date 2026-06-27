@@ -1,4 +1,5 @@
 export { default as NowPanel } from './components/NowPanel.vue'
+export { default as DiagnosticsPanel } from './components/DiagnosticsPanel.vue'
 export { default as InsightBlock } from './components/InsightBlock.vue'
 export { default as MetricCard } from './components/MetricCard.vue'
 export { default as TodayCard } from './components/TodayCard.vue'

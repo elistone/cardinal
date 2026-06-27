@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
 import { ref } from 'vue'
 import type { EnergySnapshot, EnergyInsight, ConfigurationHealth } from '@cardinal/domain'
-import InsightBlock from '../components/InsightBlock.vue'
-import MetricCard from '../components/MetricCard.vue'
-import EnergyFlowDiagram from '../components/EnergyFlowDiagram.vue'
-import SensorHealthBadge from '../components/SensorHealthBadge.vue'
+import NowPanel from '../components/NowPanel.vue'
 import SensorHealthOverlay from '../components/SensorHealthOverlay.vue'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -65,257 +62,121 @@ const ALL_CONFIGURED: ConfigurationHealth = {
   },
 }
 
-// ─── Layout helpers ───────────────────────────────────────────────────────────
-
-function batteryDirection(snapshot: EnergySnapshot): string {
-  const b = snapshot.battery
-  const pct = `${b.chargePercent}%`
-  if (b.isCharging) return `${pct} · Charging`
-  if (b.isDischarging) return `${pct} · Discharging`
-  return `${pct} · Standby`
-}
-
-function gridDirection(snapshot: EnergySnapshot): string {
-  const g = snapshot.grid
-  if (g.isImporting) return 'Importing'
-  if (g.isExporting) return 'Exporting'
-  return 'Idle'
-}
-
-function gridValue(snapshot: EnergySnapshot): number {
-  return snapshot.grid.isImporting ? snapshot.grid.importingWatts : snapshot.grid.exportingWatts
-}
-
-function batteryValue(snapshot: EnergySnapshot): number {
-  const b = snapshot.battery
-  if (b.isCharging) return b.chargingWatts
-  if (b.isDischarging) return b.dischargingWatts
-  return 0
-}
-
-// ─── NOW Panel layout component (for stories only) ────────────────────────────
-
-const NowPanelLayout = {
-  props: ['snapshot', 'insight'],
-  components: { InsightBlock, MetricCard, EnergyFlowDiagram },
-  template: `
-    <div style="
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-      padding: 24px;
-      background: var(--color-bg);
-      min-height: 100vh;
-      box-sizing: border-box;
-    ">
-      <p style="
-        margin: 0;
-        font-size: 0.6875rem;
-        font-weight: 700;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--color-text-subdued);
-      ">NOW</p>
-
-      <InsightBlock
-        :title="insight.title"
-        :description="insight.description"
-        :detail="insight.detail"
-        :sentiment="insight.sentiment"
-        :confidence="insight.confidence"
-      />
-
-      <div style="
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-      ">
-        <EnergyFlowDiagram :snapshot="snapshot" />
-
-        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-          <MetricCard
-            label="Solar output"
-            :value="snapshot.solar.generatingWatts"
-            unit="W"
-            concept="solar"
-          />
-          <MetricCard
-            label="Battery"
-            :value="batteryValue(snapshot)"
-            unit="W"
-            concept="battery"
-            :direction-label="batteryDirection(snapshot)"
-          />
-          <MetricCard
-            label="Grid"
-            :value="gridValue(snapshot)"
-            unit="W"
-            concept="grid"
-            :direction-label="gridDirection(snapshot)"
-          />
-          <MetricCard
-            label="Home consumption"
-            :value="snapshot.home.consumingWatts"
-            unit="W"
-            concept="home"
-          />
-        </div>
-      </div>
-    </div>
-  `,
-  methods: { batteryDirection, batteryValue, gridDirection, gridValue },
-}
-
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
-const meta: Meta = {
+const meta: Meta<typeof NowPanel> = {
   title: 'Layout/NOW Panel',
+  component: NowPanel,
   parameters: {
     layout: 'fullscreen',
   },
+  decorators: [
+    () => ({
+      template: `
+        <div style="
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          background: var(--color-bg);
+        ">
+          <story />
+        </div>
+      `,
+    }),
+  ],
 }
 
 export default meta
-type Story = StoryObj
+type Story = StoryObj<typeof NowPanel>
 
 // ─── Live states ──────────────────────────────────────────────────────────────
 
 export const ChargingFromSolar: Story = {
   name: 'Live — Charging from Solar',
-  render: () => ({
-    components: { NowPanelLayout },
-    setup() {
-      const insight: EnergyInsight = {
-        id: 'fixture-1',
-        type: 'battery_charging_solar',
-        sentiment: 'positive',
-        priority: 'normal',
-        confidence: 'high',
-        timestamp: SOLAR_CHARGING.timestamp,
-        title: 'Charging from Solar',
-        description: 'Your battery is charging from excess solar.',
-        detail: 'Battery is at 68% and rising. Also sending 800 W to the grid.',
-      }
-      return { snapshot: SOLAR_CHARGING, insight }
+  args: {
+    snapshot: SOLAR_CHARGING,
+    insight: {
+      id: 'fixture-1',
+      type: 'battery_charging_solar',
+      sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp: SOLAR_CHARGING.timestamp,
+      title: 'Charging from Solar',
+      description: 'Your battery is charging from excess solar.',
+      detail: 'Battery is at 68% and rising. Also sending 800 W to the grid.',
     },
-    template: '<NowPanelLayout :snapshot="snapshot" :insight="insight" />',
-  }),
+  },
 }
 
 export const ExportingSolar: Story = {
   name: 'Live — Exporting Solar',
-  render: () => ({
-    components: { NowPanelLayout },
-    setup() {
-      const insight: EnergyInsight = {
-        id: 'fixture-2',
-        type: 'solar_exporting',
-        sentiment: 'positive',
-        priority: 'normal',
-        confidence: 'high',
-        timestamp: SOLAR_EXPORTING.timestamp,
-        title: 'Exporting Solar',
-        description: "You're generating more solar than you need.",
-        detail: 'Sending 3 kW to the grid.',
-      }
-      return { snapshot: SOLAR_EXPORTING, insight }
+  args: {
+    snapshot: SOLAR_EXPORTING,
+    insight: {
+      id: 'fixture-2',
+      type: 'solar_exporting',
+      sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp: SOLAR_EXPORTING.timestamp,
+      title: 'Exporting Solar',
+      description: "You're generating more solar than you need.",
+      detail: 'Sending 3 kW to the grid.',
     },
-    template: '<NowPanelLayout :snapshot="snapshot" :insight="insight" />',
-  }),
+  },
 }
 
 export const BatteryDischarging: Story = {
   name: 'Live — Running on Battery',
-  render: () => ({
-    components: { NowPanelLayout },
-    setup() {
-      const insight: EnergyInsight = {
-        id: 'fixture-3',
-        type: 'battery_discharging',
-        sentiment: 'positive',
-        priority: 'normal',
-        confidence: 'high',
-        timestamp: BATTERY_DISCHARGING.timestamp,
-        title: 'Running on Battery',
-        description: 'Your home is running on battery power. No grid draw.',
-        detail: 'Battery is at 80% and supplying 2 kW.',
-      }
-      return { snapshot: BATTERY_DISCHARGING, insight }
+  args: {
+    snapshot: BATTERY_DISCHARGING,
+    insight: {
+      id: 'fixture-3',
+      type: 'battery_discharging',
+      sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp: BATTERY_DISCHARGING.timestamp,
+      title: 'Running on Battery',
+      description: 'Your home is running on battery power. No grid draw.',
+      detail: 'Battery is at 80% and supplying 2 kW.',
     },
-    template: '<NowPanelLayout :snapshot="snapshot" :insight="insight" />',
-  }),
+  },
 }
 
 export const GridPowerOvernight: Story = {
   name: 'Live — Grid Power (night)',
-  render: () => ({
-    components: { NowPanelLayout },
-    setup() {
-      const insight: EnergyInsight = {
-        id: 'fixture-4',
-        type: 'grid_importing',
-        sentiment: 'neutral',
-        priority: 'normal',
-        confidence: 'high',
-        timestamp: GRID_POWER.timestamp,
-        title: 'Grid Power',
-        description: 'Your home is running on grid power.',
-        detail: 'No solar generation right now.',
-      }
-      return { snapshot: GRID_POWER, insight }
+  args: {
+    snapshot: GRID_POWER,
+    insight: {
+      id: 'fixture-4',
+      type: 'grid_importing',
+      sentiment: 'neutral',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp: GRID_POWER.timestamp,
+      title: 'Grid Power',
+      description: 'Your home is running on grid power.',
+      detail: 'No solar generation right now.',
     },
-    template: '<NowPanelLayout :snapshot="snapshot" :insight="insight" />',
-  }),
+  },
 }
 
 // ─── System states ────────────────────────────────────────────────────────────
 
 export const Loading: Story = {
   name: 'State — Loading',
-  render: () => ({
-    components: { InsightBlock, MetricCard, EnergyFlowDiagram },
-    template: `
-      <div style="display:flex;flex-direction:column;gap:24px;padding:24px;background:var(--color-bg);min-height:100vh;box-sizing:border-box;">
-        <p style="margin:0;font-size:0.6875rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--color-text-subdued);">NOW</p>
-        <InsightBlock title="" description="" sentiment="neutral" confidence="high" :is-loading="true" />
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-          <EnergyFlowDiagram :snapshot="null" :is-loading="true" />
-          <div style="display:grid;grid-template-columns:1fr;gap:12px;">
-            <MetricCard label="" :value="0" unit="W" concept="solar" :is-loading="true" />
-            <MetricCard label="" :value="0" unit="W" concept="battery" :is-loading="true" />
-            <MetricCard label="" :value="0" unit="W" concept="grid" :is-loading="true" />
-            <MetricCard label="" :value="0" unit="W" concept="home" :is-loading="true" />
-          </div>
-        </div>
-      </div>
-    `,
-  }),
-}
-
-export const NoConfiguration: Story = {
-  name: 'State — No Configuration',
-  render: () => ({
-    template: `
-      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--color-bg);padding:24px;box-sizing:border-box;">
-        <div style="max-width:420px;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;">
-          <div style="font-size:3rem;line-height:1;opacity:0.3;">⚡</div>
-          <h2 style="margin:0;font-size:1.375rem;font-weight:700;color:var(--color-text-primary);">Set up Cardinal</h2>
-          <p style="margin:0;font-size:1rem;line-height:1.6;color:var(--color-text-secondary);">
-            Cardinal isn't connected to your home yet. Add your sensor mappings to start seeing live energy data.
-          </p>
-          <p style="margin:0;font-size:0.875rem;line-height:1.5;color:var(--color-text-subdued);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:10px;padding:16px 20px;">
-            Go to <strong style="color:var(--color-text-secondary);font-weight:600;">Settings → Integrations → Cardinal</strong> in Home Assistant to configure your sensors.
-          </p>
-        </div>
-      </div>
-    `,
-  }),
+  args: {
+    snapshot: null,
+    insight: null,
+  },
 }
 
 export const Disconnected: Story = {
   name: 'State — Disconnected (with stale data)',
   render: () => ({
-    components: { NowPanelLayout },
+    components: { NowPanel },
     setup() {
       const insight: EnergyInsight = {
         id: 'fixture-stale',
@@ -331,13 +192,23 @@ export const Disconnected: Story = {
       return { snapshot: SOLAR_CHARGING, insight }
     },
     template: `
-      <div style="display:flex;flex-direction:column;min-height:100vh;background:var(--color-bg);box-sizing:border-box;">
-        <div style="display:flex;align-items:center;gap:8px;padding:12px 24px;background:rgba(245,158,11,0.08);border-bottom:1px solid rgba(245,158,11,0.15);font-size:0.875rem;color:var(--color-health-unavailable);">
+      <div style="display:flex;flex-direction:column;flex:1;">
+        <div style="
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 24px;
+          background: rgba(245,158,11,0.08);
+          border-bottom: 1px solid rgba(245,158,11,0.15);
+          font-size: 0.875rem;
+          color: var(--color-health-unavailable);
+          flex-shrink: 0;
+        ">
           <span style="width:7px;height:7px;border-radius:50%;background:var(--color-health-unavailable);flex-shrink:0;"></span>
           Reconnecting to Home Assistant…
         </div>
-        <div style="opacity:0.5;pointer-events:none;flex:1;">
-          <NowPanelLayout :snapshot="snapshot" :insight="insight" />
+        <div style="opacity:0.5;pointer-events:none;flex:1;display:flex;flex-direction:column;">
+          <NowPanel :snapshot="snapshot" :insight="insight" />
         </div>
       </div>
     `,
@@ -347,13 +218,13 @@ export const Disconnected: Story = {
 export const WithSensorHealthOverlay: Story = {
   name: 'Interaction — Sensor Health Overlay',
   render: () => ({
-    components: { SensorHealthOverlay, SensorHealthBadge },
+    components: { SensorHealthOverlay },
     setup() {
       const isOpen = ref(true)
       return { isOpen, health: ALL_CONFIGURED }
     },
     template: `
-      <div style="min-height:100vh;background:var(--color-bg);">
+      <div style="min-height:100vh;">
         <SensorHealthOverlay :health="health" :is-open="isOpen" @close="isOpen = false" />
       </div>
     `,

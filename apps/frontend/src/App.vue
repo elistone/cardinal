@@ -2,15 +2,13 @@
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEnergyStore } from './stores/energy'
-import { SensorHealthOverlay } from '@cardinal/ui'
+import { NowPanel, SensorHealthOverlay } from '@cardinal/ui'
 import AppHeader from './components/AppHeader.vue'
-import StateLoading from './components/StateLoading.vue'
 import StateNoConfiguration from './components/StateNoConfiguration.vue'
 import StateDisconnected from './components/StateDisconnected.vue'
-import NowSection from './components/NowSection.vue'
 
 const store = useEnergyStore()
-const { snapshot, insight, health, isLoading, isDisconnected, isConfigured } = storeToRefs(store)
+const { snapshot, insight, health, isDisconnected, isConfigured } = storeToRefs(store)
 
 const healthOverlayOpen = ref(false)
 </script>
@@ -23,11 +21,8 @@ const healthOverlayOpen = ref(false)
       @open-health="healthOverlayOpen = true"
     />
 
-    <!-- Loading: waiting for first data after connection -->
-    <StateLoading v-if="isLoading" />
-
     <!-- Not configured: entity mapping is empty -->
-    <StateNoConfiguration v-else-if="isConfigured === false" />
+    <StateNoConfiguration v-if="isConfigured === false" />
 
     <!-- Disconnected: connection lost, show stale data dimmed -->
     <StateDisconnected
@@ -36,16 +31,13 @@ const healthOverlayOpen = ref(false)
       :insight="insight"
     />
 
-    <!-- Live: snapshot and insight are present -->
-    <NowSection
-      v-else-if="snapshot && insight"
+    <!-- Live or loading: NowPanel handles null snapshot/insight as loading state -->
+    <NowPanel
+      v-else
       :snapshot="snapshot"
       :insight="insight"
       :health="health"
     />
-
-    <!-- Fallback: configured but no snapshot yet (transient) -->
-    <StateLoading v-else />
 
     <!-- Sensor health overlay -->
     <SensorHealthOverlay

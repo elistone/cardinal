@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/vue'
-import NowSection from './NowSection.vue'
+import { NowPanel } from '@cardinal/ui'
 import type { EnergySnapshot, EnergyInsight, ConfigurationHealth } from '@cardinal/domain'
 
 function makeSnapshot(overrides: Partial<EnergySnapshot> = {}): EnergySnapshot {
@@ -42,29 +42,29 @@ function makeInsight(): EnergyInsight {
   }
 }
 
-describe('NowSection', () => {
+describe('NowPanel', () => {
   it('renders the NOW section label', () => {
-    render(NowSection, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
+    render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
     expect(screen.getByText('NOW')).toBeDefined()
   })
 
   it('renders the insight title', () => {
-    render(NowSection, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
+    render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
     expect(screen.getByText('Charging from Solar')).toBeDefined()
   })
 
   it('renders the insight description', () => {
-    render(NowSection, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
+    render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
     expect(screen.getByText('Your battery is charging from excess solar.')).toBeDefined()
   })
 
   it('renders the solar metric label', () => {
-    render(NowSection, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
+    render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
     expect(screen.getByText('Solar output')).toBeDefined()
   })
 
   it('renders battery direction label including charge percent', () => {
-    render(NowSection, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
+    render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
     expect(screen.getByText('68% · Charging')).toBeDefined()
   })
 
@@ -88,14 +88,14 @@ describe('NowSection', () => {
         homeConsumed: { status: 'missing' },
       },
     }
-    render(NowSection, {
+    render(NowPanel, {
       props: { snapshot: makeSnapshot(), insight: makeInsight(), health: unavailableHealth },
     })
     expect(screen.getByText('—')).toBeDefined()
   })
 
   it('has an accessible main landmark', () => {
-    render(NowSection, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
+    render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
     expect(screen.getByRole('main')).toBeDefined()
   })
 })

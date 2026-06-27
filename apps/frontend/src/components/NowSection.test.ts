@@ -43,11 +43,6 @@ function makeInsight(): EnergyInsight {
 }
 
 describe('NowPanel', () => {
-  it('renders the NOW section label', () => {
-    render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
-    expect(screen.getByText('NOW')).toBeDefined()
-  })
-
   it('renders the insight title', () => {
     render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
     expect(screen.getByText('Charging from Solar')).toBeDefined()
@@ -60,12 +55,12 @@ describe('NowPanel', () => {
 
   it('renders the solar metric label', () => {
     render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
-    expect(screen.getByText('Solar output')).toBeDefined()
+    expect(screen.getByText('Solar generation')).toBeDefined()
   })
 
-  it('renders battery direction label including charge percent', () => {
+  it('renders battery direction label', () => {
     render(NowPanel, { props: { snapshot: makeSnapshot(), insight: makeInsight(), health: null } })
-    expect(screen.getByText('68% · Charging')).toBeDefined()
+    expect(screen.getByText('Charging')).toBeDefined()
   })
 
   it('shows em-dash for an unavailable sensor', () => {

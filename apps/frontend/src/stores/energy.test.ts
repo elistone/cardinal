@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useEnergyStore } from './energy'
-import type { ConfigurationHealth, DailyFinancials, DailySummary, EnergySnapshot } from '@cardinal/domain'
+import type { ConfigurationHealth, DailySummary, EnergySnapshot } from '@cardinal/domain'
 
 const TIMESTAMP = new Date('2025-06-01T12:00:00Z')
 const TODAY = new Date('2025-06-01')
@@ -37,16 +37,6 @@ function makeDailySummary(): DailySummary {
     battery: { chargedKwh: 4, dischargedKwh: 2 },
     grid: { importedKwh: 1, exportedKwh: 5 },
     home: { consumedKwh: 10 },
-  }
-}
-
-function makeFinancials(): DailyFinancials {
-  return {
-    date: TODAY,
-    importCost: 0.28,
-    exportEarnings: 0.75,
-    savings: 2.20,
-    currency: 'GBP',
   }
 }
 
@@ -150,12 +140,46 @@ describe('useEnergyStore', () => {
     })
   })
 
-  describe('setDailyFinancials', () => {
-    it('stores the daily financials', () => {
+  describe('dailyFinancials (derived)', () => {
+    it('is null before any daily summary arrives', () => {
       const store = useEnergyStore()
-      const financials = makeFinancials()
-      store.setDailyFinancials(financials)
-      expect(store.dailyFinancials).toEqual(financials)
+      expect(store.dailyFinancials).toBeNull()
+    })
+
+    it('is null when summary exists but tariffs are not configured', () => {
+      const store = useEnergyStore()
+      store.setDailySummary(makeDailySummary())
+      // makeSnapshot() has importRate: null, exportRate: null
+      store.setSnapshot(makeSnapshot())
+      expect(store.dailyFinancials).toBeNull()
+    })
+
+    it('derives financials when summary and tariff rates are both available', () => {
+      const store = useEnergyStore()
+      store.setDailySummary(makeDailySummary())
+      store.setSnapshot({
+        ...makeSnapshot(),
+        tariffs: { importRate: 0.28, exportRate: 0.15, currency: 'GBP' },
+      })
+      const f = store.dailyFinancials
+      expect(f).not.toBeNull()
+      // importedKwh=1 × 0.28 = 0.28
+      expect(f?.importCost).toBeCloseTo(0.28)
+      // exportedKwh=5 × 0.15 = 0.75
+      expect(f?.exportEarnings).toBeCloseTo(0.75)
+      expect(f?.currency).toBe('GBP')
+    })
+
+    it('updates automatically when tariff rates become available', () => {
+      const store = useEnergyStore()
+      store.setDailySummary(makeDailySummary())
+      expect(store.dailyFinancials).toBeNull()
+
+      store.setSnapshot({
+        ...makeSnapshot(),
+        tariffs: { importRate: 0.28, exportRate: 0.15, currency: 'GBP' },
+      })
+      expect(store.dailyFinancials).not.toBeNull()
     })
   })
 

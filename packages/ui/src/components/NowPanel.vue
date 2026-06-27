@@ -23,13 +23,14 @@ const batteryValue = computed(() => {
   return 0
 })
 
+// Direction label: state only — the percentage is already visible in the flow
+// diagram node, so showing it here is redundant duplication.
 const batteryDirection = computed(() => {
   const b = props.snapshot?.battery
   if (!b) return ''
-  const pct = `${b.chargePercent}%`
-  if (b.isCharging) return `${pct} · Charging`
-  if (b.isDischarging) return `${pct} · Discharging`
-  return `${pct} · Standby`
+  if (b.isCharging)    return 'Charging'
+  if (b.isDischarging) return 'Discharging'
+  return 'Standby'
 })
 
 const gridValue = computed(() => {
@@ -46,8 +47,6 @@ const gridDirection = computed(() => {
   return 'Idle'
 })
 
-// Dynamic accent colours — reflect the current energy state so the card's
-// visual treatment matches what the energy flow diagram shows for the same node.
 const batteryAccentColor = computed(() => {
   const b = props.snapshot?.battery
   if (!b) return 'var(--color-battery-idle)'
@@ -58,10 +57,10 @@ const batteryAccentColor = computed(() => {
 
 const gridAccentColor = computed(() => {
   const g = props.snapshot?.grid
-  if (!g) return 'var(--color-battery-idle)'  // neutral grey when no data
+  if (!g) return 'var(--color-battery-idle)'
   if (g.isExporting) return 'var(--color-grid-export)'
   if (g.isImporting) return 'var(--color-grid-import)'
-  return 'var(--color-battery-idle)'           // idle: neutral grey
+  return 'var(--color-battery-idle)'
 })
 
 function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): boolean {
@@ -84,8 +83,8 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
     aria-label="Current energy state"
     :aria-busy="isLoading || undefined"
   >
-    <h2 class="now-panel__label">NOW</h2>
-
+    <!-- Insight: skeleton during connecting, content when live data arrives.
+         This is the primary communication element — everything else supports it. -->
     <InsightBlock
       :title="insight?.title ?? ''"
       :description="insight?.description ?? ''"
@@ -95,68 +94,82 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
       :is-loading="isLoading"
     />
 
-    <!-- The body fades in 100ms after the insight settles.
-         The delay creates a subtle hierarchy: explanation first, evidence second.
-         v-if keeps the body out of the DOM while loading so screen readers
-         do not encounter empty metric cards. -->
-    <Transition name="now-panel-body">
-      <div v-if="!isLoading" class="now-panel__body">
-        <EnergyFlowDiagram :snapshot="snapshot" :is-loading="false" />
+    <!--
+      Body: always present in the DOM (no v-if).
 
-        <div class="now-panel__metrics" role="list" aria-label="Live power readings">
-          <div role="listitem">
-            <MetricCard
-              label="Solar output"
-              :value="isSensorUnavailable('solar') ? null : snapshot!.solar.generatingWatts"
-              unit="W"
-              concept="solar"
-            />
-          </div>
-          <div role="listitem">
-            <MetricCard
-              label="Battery"
-              :value="isSensorUnavailable('battery') ? null : batteryValue"
-              unit="W"
-              concept="battery"
-              :direction-label="batteryDirection"
-              :accent-color="batteryAccentColor"
-            />
-          </div>
-          <div role="listitem">
-            <MetricCard
-              label="Grid"
-              :value="isSensorUnavailable('grid') ? null : gridValue"
-              unit="W"
-              concept="grid"
-              :direction-label="gridDirection"
-              :accent-color="gridAccentColor"
-            />
-          </div>
-          <div role="listitem">
-            <MetricCard
-              label="Home consumption"
-              :value="isSensorUnavailable('home') ? null : snapshot!.home.consumingWatts"
-              unit="W"
-              concept="home"
-            />
-          </div>
+      The diagram is always rendered so the dormant state is visible while
+      connecting — users see their home's energy topology immediately, even
+      before data arrives. The diagram handles its own dormant ↔ live
+      transition via its :is-loading prop.
+
+      The metric cards always render in their grid positions so the layout
+      does not shift when data arrives. They show skeleton content during
+      loading, then transition to real values.
+
+      Explanation is primary: insight is above; diagram and metrics below.
+      Screen readers receive aria-busy="true" on the parent until data arrives.
+    -->
+    <div class="now-panel__body">
+      <EnergyFlowDiagram :snapshot="snapshot" :is-loading="isLoading" />
+
+      <div class="now-panel__metrics" role="list" aria-label="Live power readings">
+        <div role="listitem">
+          <MetricCard
+            label="Solar generation"
+            :value="isLoading || isSensorUnavailable('solar') ? null : snapshot!.solar.generatingWatts"
+            unit="W"
+            concept="solar"
+            :is-loading="isLoading"
+          />
+        </div>
+        <div role="listitem">
+          <MetricCard
+            label="Battery"
+            :value="isLoading || isSensorUnavailable('battery') ? null : batteryValue"
+            unit="W"
+            concept="battery"
+            :direction-label="isLoading ? '' : batteryDirection"
+            :accent-color="batteryAccentColor"
+            :is-loading="isLoading"
+          />
+        </div>
+        <div role="listitem">
+          <MetricCard
+            label="Grid"
+            :value="isLoading || isSensorUnavailable('grid') ? null : gridValue"
+            unit="W"
+            concept="grid"
+            :direction-label="isLoading ? '' : gridDirection"
+            :accent-color="gridAccentColor"
+            :is-loading="isLoading"
+          />
+        </div>
+        <div role="listitem">
+          <MetricCard
+            label="Home consumption"
+            :value="isLoading || isSensorUnavailable('home') ? null : snapshot!.home.consumingWatts"
+            unit="W"
+            concept="home"
+            :is-loading="isLoading"
+          />
         </div>
       </div>
-    </Transition>
+    </div>
   </main>
 </template>
 
 <style scoped>
 /*
- * container-type lets @container queries respond to this element's own width
- * rather than the viewport width.  This is critical for HA panels: the panel
- * container is narrower than the viewport (sidebar takes space), so a viewport
- * media query at 1024px would never trigger even on a 1440px monitor.
+ * container-type lets @container queries respond to this element's own width.
+ * Critical for HA panels: the panel container is narrower than the viewport
+ * (sidebar takes space), so a viewport media query would never trigger on
+ * a large monitor with the HA sidebar open.
+ *
+ * Scroll is handled by the parent .cardinal-content div in App.vue.
+ * NowPanel does not scroll — it sizes to its natural content height.
  */
 .now-panel {
   container-type: inline-size;
-  flex: 1;
-  overflow-y: auto;
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
@@ -164,21 +177,10 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
   margin: 0;
 }
 
-.now-panel__label {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-subdued);
-}
-
-/* Extra breathing room between the explanation and the supporting evidence. */
 .now-panel__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
-  margin-top: var(--space-2);
 }
 
 .now-panel__metrics {
@@ -187,7 +189,9 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
   gap: var(--space-3);
 }
 
-/* Wide: diagram and metric stack side by side */
+/* Wide: diagram and metrics side by side.
+   The layout is stable from first render — no shift when data arrives
+   because both columns are always in the DOM. */
 @container (min-width: 600px) {
   .now-panel__body {
     display: grid;
@@ -199,37 +203,6 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
   .now-panel__metrics {
     grid-template-columns: 1fr;
     gap: var(--space-3);
-  }
-}
-
-/* ── Loading → live stagger ─────────────────────────────────────────────────
-   The body (diagram + metrics) fades in 100ms after the insight arrives.
-   This communicates that the explanation is primary; the numbers are evidence.
-   GPU-composited: opacity + transform only.
-*/
-.now-panel-body-enter-active {
-  transition: opacity 300ms ease-out, transform 300ms ease-out;
-  transition-delay: 100ms;
-}
-.now-panel-body-leave-active {
-  transition: opacity 150ms ease-in;
-}
-.now-panel-body-enter-from {
-  opacity: 0;
-  transform: translateY(8px);
-}
-.now-panel-body-leave-to {
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .now-panel-body-enter-active,
-  .now-panel-body-leave-active {
-    transition: none;
-  }
-  .now-panel-body-enter-from {
-    opacity: 1;
-    transform: none;
   }
 }
 </style>

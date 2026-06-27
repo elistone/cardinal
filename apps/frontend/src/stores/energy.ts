@@ -7,20 +7,33 @@ import type {
   EnergyInsight,
   EnergySnapshot,
 } from '@cardinal/domain'
-import { describeEnergyState } from '@cardinal/core'
+import { describeEnergyState, buildDailyFinancials } from '@cardinal/core'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
 export const useEnergyStore = defineStore('energy', () => {
   const snapshot = ref<EnergySnapshot | null>(null)
   const dailySummary = ref<DailySummary | null>(null)
-  const dailyFinancials = ref<DailyFinancials | null>(null)
   const health = ref<ConfigurationHealth | null>(null)
   const connectionStatus = ref<ConnectionStatus>('connecting')
 
   const insight = computed<EnergyInsight | null>(() =>
     snapshot.value ? describeEnergyState(snapshot.value) : null,
   )
+
+  /**
+   * Daily financials derived from the daily summary and the live tariff rates.
+   *
+   * Returns null when either the summary has not arrived, or tariff rates are
+   * not configured (importRate / exportRate will be null from the provider).
+   * Recomputes automatically whenever the summary or snapshot tariffs change.
+   */
+  const dailyFinancials = computed<DailyFinancials | null>(() => {
+    const summary = dailySummary.value
+    const tariffs = snapshot.value?.tariffs
+    if (!summary || !tariffs?.importRate || !tariffs?.exportRate) return null
+    return buildDailyFinancials(summary, tariffs.importRate, tariffs.exportRate, tariffs.currency)
+  })
 
   /**
    * True when waiting for the first data after mount — no snapshot yet and
@@ -54,10 +67,6 @@ export const useEnergyStore = defineStore('energy', () => {
     dailySummary.value = incoming
   }
 
-  function setDailyFinancials(incoming: DailyFinancials): void {
-    dailyFinancials.value = incoming
-  }
-
   function setHealth(incoming: ConfigurationHealth): void {
     health.value = incoming
   }
@@ -78,7 +87,6 @@ export const useEnergyStore = defineStore('energy', () => {
     isConfigured,
     setSnapshot,
     setDailySummary,
-    setDailyFinancials,
     setHealth,
     setConnectionStatus,
   }

@@ -191,14 +191,10 @@ const batteryLabel = computed(() => {
   return `${b.chargePercent}%`
 })
 
-// Which nodes are the active *source* of energy right now.
-// Only source nodes pulse — sinks (Home) don't generate.
-// Grid importing is deliberately excluded: it's infrastructure, not generation.
-// Pulsing it would imply urgency rather than quiet observation.
-const activeSources = computed(() => ({
-  solar:   props.snapshot?.solar.isGenerating    ?? false,
-  battery: props.snapshot?.battery.isDischarging ?? false,
-}))
+// Solar pulses when it is the active generation source.
+// Battery and grid are intentionally excluded: their flow paths already
+// communicate activity, and pulsing nodes would add redundant motion.
+const solarIsGenerating = computed(() => props.snapshot?.solar.isGenerating ?? false)
 
 // ─── Dormant topology ──────────────────────────────────────────────────────────
 
@@ -295,8 +291,10 @@ const DORMANT_PATHS = (() => {
         </desc>
 
         <defs>
+          <!-- Only active flows get arrowheads — an arrowhead on an invisible
+               inactive path communicates nothing and adds visual noise. -->
           <marker
-            v-for="flow in flows"
+            v-for="flow in flows.filter(f => f.active)"
             :id="`arrow-${flow.id}`"
             :key="`marker-${flow.id}`"
             markerWidth="6"
@@ -305,7 +303,7 @@ const DORMANT_PATHS = (() => {
             refY="3"
             orient="auto"
           >
-            <path d="M0,0 L0,6 L6,3 z" :fill="flow.active ? flow.color : 'var(--color-border)'" />
+            <path d="M0,0 L0,6 L6,3 z" :fill="flow.color" />
           </marker>
         </defs>
 
@@ -324,7 +322,7 @@ const DORMANT_PATHS = (() => {
             :stroke-width="flow.sw"
             pathLength="100"
             :style="{ '--flow-duration': flow.duration }"
-            :marker-end="`url(#arrow-${flow.id})`"
+            :marker-end="flow.active ? `url(#arrow-${flow.id})` : undefined"
           />
         </g>
 
@@ -350,7 +348,7 @@ const DORMANT_PATHS = (() => {
             fill="var(--color-surface-raised)"
             stroke="var(--color-solar)"
             stroke-width="2"
-            :class="{ 'energy-flow__node-circle--pulse': activeSources.solar }"
+            :class="{ 'energy-flow__node-circle--pulse': solarIsGenerating }"
             style="--node-color: var(--color-solar)"
           />
           <g :transform="`translate(${nodes.solar.cx}, ${nodes.solar.cy})`" fill="none" stroke="var(--color-solar)" stroke-width="1.5" stroke-linecap="round">
@@ -391,16 +389,12 @@ const DORMANT_PATHS = (() => {
         </g>
 
         <!-- ── Battery node ────────────────────────────────────────────── -->
-        <!-- Battery pulses when discharging — it is the active energy source.
-             --node-color drives the drop-shadow colour in the shared @keyframes. -->
         <g class="energy-flow__node">
           <circle
             :cx="nodes.battery.cx" :cy="nodes.battery.cy" r="22"
             fill="var(--color-surface-raised)"
             :stroke="snapshot?.battery.isCharging ? 'var(--color-battery-charging)' : snapshot?.battery.isDischarging ? 'var(--color-battery-discharging)' : 'var(--color-border)'"
             stroke-width="2"
-            :class="{ 'energy-flow__node-circle--pulse': activeSources.battery }"
-            style="--node-color: var(--color-battery-discharging)"
           />
           <g :transform="`translate(${nodes.battery.cx}, ${nodes.battery.cy})`" fill="none" stroke-linecap="round">
             <rect x="-7" y="-5.5" width="14" height="11" rx="2"
@@ -501,7 +495,7 @@ const DORMANT_PATHS = (() => {
 }
 
 .energy-flow__path:not(.energy-flow__path--active) {
-  opacity: 0.18;
+  opacity: 0.35;
 }
 
 @media (prefers-reduced-motion: no-preference) {

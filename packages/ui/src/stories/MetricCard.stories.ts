@@ -23,7 +23,7 @@ type Story = StoryObj<typeof MetricCard>
 
 export const SolarGenerating: Story = {
   args: {
-    label: 'Solar output',
+    label: 'Solar generation',
     value: 3600,
     unit: 'W',
     concept: 'solar',
@@ -32,7 +32,7 @@ export const SolarGenerating: Story = {
 
 export const SolarIdle: Story = {
   args: {
-    label: 'Solar output',
+    label: 'Solar generation',
     value: 0,
     unit: 'W',
     concept: 'solar',
@@ -48,7 +48,7 @@ export const BatteryCharging: Story = {
     value: 1800,
     unit: 'W',
     concept: 'battery',
-    directionLabel: '58% · Charging',
+    directionLabel: 'Charging',
     accentColor: 'var(--color-battery-charging)',
   },
 }
@@ -59,7 +59,7 @@ export const BatteryDischarging: Story = {
     value: 2100,
     unit: 'W',
     concept: 'battery',
-    directionLabel: '73% · Discharging',
+    directionLabel: 'Discharging',
     accentColor: 'var(--color-battery-discharging)',
   },
 }
@@ -70,7 +70,7 @@ export const BatteryIdle: Story = {
     value: 0,
     unit: 'W',
     concept: 'battery',
-    directionLabel: '42% · Standby',
+    directionLabel: 'Standby',
     accentColor: 'var(--color-battery-idle)',
   },
 }
@@ -126,7 +126,7 @@ export const HomeConsuming: Story = {
 
 export const Loading: Story = {
   args: {
-    label: 'Solar output',
+    label: 'Solar generation',
     value: 0,
     unit: 'W',
     concept: 'solar',
@@ -136,7 +136,7 @@ export const Loading: Story = {
 
 export const Unavailable: Story = {
   args: {
-    label: 'Solar output',
+    label: 'Solar generation',
     value: null,
     unit: 'W',
     concept: 'solar',
@@ -159,19 +159,19 @@ export const IntensityComparison: Story = {
         </p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:440px;">
           <div>
-            <MetricCard label="Solar output" :value="200"  unit="W" concept="solar" />
+            <MetricCard label="Solar generation" :value="200"  unit="W" concept="solar" />
             <p style="font-size:0.7rem;color:#64748b;margin:8px 0 0;text-align:center;">200 W</p>
           </div>
           <div>
-            <MetricCard label="Solar output" :value="1200" unit="W" concept="solar" />
+            <MetricCard label="Solar generation" :value="1200" unit="W" concept="solar" />
             <p style="font-size:0.7rem;color:#64748b;margin:8px 0 0;text-align:center;">1.2 kW</p>
           </div>
           <div>
-            <MetricCard label="Solar output" :value="3000" unit="W" concept="solar" />
+            <MetricCard label="Solar generation" :value="3000" unit="W" concept="solar" />
             <p style="font-size:0.7rem;color:#64748b;margin:8px 0 0;text-align:center;">3.0 kW</p>
           </div>
           <div>
-            <MetricCard label="Solar output" :value="4800" unit="W" concept="solar" />
+            <MetricCard label="Solar generation" :value="4800" unit="W" concept="solar" />
             <p style="font-size:0.7rem;color:#64748b;margin:8px 0 0;text-align:center;">4.8 kW</p>
           </div>
         </div>
@@ -188,10 +188,10 @@ export const IntensityComparison: Story = {
 // A battery cycling through charging → standby → discharging shows the smooth
 // colour handoff: green → grey → blue.
 const BATTERY_CYCLE: Array<{ value: number; accentColor: string; label: string }> = [
-  { value: 1400, accentColor: 'var(--color-battery-charging)',    label: '58% · Charging'    },
-  { value: 0,    accentColor: 'var(--color-battery-idle)',        label: '80% · Standby'     },
-  { value: 2100, accentColor: 'var(--color-battery-discharging)', label: '80% · Discharging' },
-  { value: 0,    accentColor: 'var(--color-battery-idle)',        label: '42% · Standby'     },
+  { value: 1400, accentColor: 'var(--color-battery-charging)',    label: 'Charging'    },
+  { value: 0,    accentColor: 'var(--color-battery-idle)',        label: 'Standby'     },
+  { value: 2100, accentColor: 'var(--color-battery-discharging)', label: 'Discharging' },
+  { value: 0,    accentColor: 'var(--color-battery-idle)',        label: 'Standby'     },
 ]
 
 export const BatteryStateTransition: Story = {
@@ -256,7 +256,7 @@ export const LiveCountAnimation: Story = {
     template: `
       <div>
         <div style="max-width:200px;">
-          <MetricCard label="Solar output" :value="value" unit="W" concept="solar" />
+          <MetricCard label="Solar generation" :value="value" unit="W" concept="solar" />
         </div>
         <p style="margin-top:16px;font-size:0.75rem;color:#64748b;">
           Value changes every 2 s. Accent bar, count animation, and W→kW transition.

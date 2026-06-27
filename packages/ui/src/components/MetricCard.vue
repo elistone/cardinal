@@ -132,8 +132,6 @@ const flashKey = computed(() => String(props.value))
   /* overflow: hidden clips the ::before accent bar at the top corners,
      rounding it to match the card's border-radius. */
   overflow: hidden;
-  /* Subtle inner highlight suggests physical surface depth. */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* Accent bar — height and opacity scale with --metric-accent-h / --metric-accent-op.

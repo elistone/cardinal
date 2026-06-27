@@ -40,16 +40,12 @@ const statusColors: Record<SensorHealthStatus, string> = {
     <span class="app-header__wordmark">Cardinal</span>
 
     <div class="app-header__actions">
-      <!-- LIVE indicator: shown when connected and data has arrived.
-           Fades out and the reconnecting badge appears when connection is lost. -->
+      <!-- LIVE indicator: fades out naturally when connection is lost.
+           The StateDisconnected view communicates the reconnecting state. -->
       <LiveIndicator
         v-if="!isDisconnected"
         :last-updated="lastUpdated"
       />
-
-      <span v-if="isDisconnected" class="app-header__disconnected-badge">
-        Reconnecting…
-      </span>
 
       <button
         v-if="health"
@@ -98,16 +94,6 @@ const statusColors: Record<SensorHealthStatus, string> = {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-
-.app-header__disconnected-badge {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-health-unavailable);
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-sm);
 }
 
 .app-header__health-btn {

@@ -73,14 +73,11 @@ describe('AppHeader', () => {
   })
 
   describe('disconnected state', () => {
-    it('shows reconnecting badge when disconnected', () => {
+    it('hides the live indicator when disconnected', () => {
       render(AppHeader, { props: defaultProps({ isDisconnected: true }) })
-      expect(screen.getByText('Reconnecting…')).toBeDefined()
-    })
-
-    it('does not show reconnecting badge when connected', () => {
-      render(AppHeader, { props: defaultProps() })
-      expect(screen.queryByText('Reconnecting…')).toBeNull()
+      // LiveIndicator is removed from DOM when disconnected; the StateDisconnected
+      // view communicates the reconnecting state at the application level.
+      expect(screen.queryByRole('status')).toBeNull()
     })
   })
 })

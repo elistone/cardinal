@@ -1,4 +1,5 @@
 export { default as NowPanel } from './components/NowPanel.vue'
+export { default as TodayPanel } from './components/TodayPanel.vue'
 export { default as DiagnosticsPanel } from './components/DiagnosticsPanel.vue'
 export { default as InsightBlock } from './components/InsightBlock.vue'
 export { default as LiveIndicator } from './components/LiveIndicator.vue'

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { EnergySnapshot } from '@cardinal/domain'
+import { energyIntensity } from '../utils/energyIntensity.js'
 
 interface Props {
   snapshot: EnergySnapshot | null
@@ -24,16 +25,13 @@ const nodes = {
   home:    { cx: 200, cy: 330 },
 }
 
-// Approximate centre of the diamond — used to push bezier control points outward.
 const DIAMOND_CX = 200
 const DIAMOND_CY = 190
 
 // ─── Bezier control point ──────────────────────────────────────────────────────
-// For each path, the quadratic bezier control point is the midpoint of the path
-// pushed outward from the diamond centre by `tension` pixels.
-// This produces organic-looking curves that radiate outward from the centre.
-// When the midpoint is nearly at the centre (near-zero push vector), we fall
-// back to a horizontal offset so the path remains visibly curved.
+// Quadratic bezier control point pushed outward from the diamond centre by
+// `tension` pixels. Creates organic arcs that radiate away from the centre
+// rather than crossing each other.
 
 function bezierCP(
   x1: number, y1: number,
@@ -54,21 +52,19 @@ function bezierCP(
   }
 }
 
-// ─── Flow magnitude helpers ────────────────────────────────────────────────────
-// Both stroke-width and animation speed scale logarithmically with watts.
-// The relationship is perceptible at both low (100 W) and high (5000 W) ends.
+// ─── Flow magnitude → visual properties ───────────────────────────────────────
+// Both helpers delegate to the shared energyIntensity utility so this diagram,
+// MetricCard, and any future component all respond to the same watts→t mapping.
 
 function flowDuration(watts: number): string {
-  if (watts <= 0) return '1.2s'
-  const clamped = Math.max(50, Math.min(watts, 5000))
-  const t = Math.log10(clamped / 50) / Math.log10(5000 / 50)
+  const t = energyIntensity(watts)
+  // t=0 → 2.4s (slow, gentle).  t=1 → 0.8s (brisk, purposeful).
   return `${(2.4 - t * 1.6).toFixed(2)}s`
 }
 
 function strokeWidth(watts: number): number {
-  if (watts <= 0) return 1.5
-  const clamped = Math.max(50, Math.min(watts, 5000))
-  const t = Math.log10(clamped / 50) / Math.log10(5000 / 50)
+  const t = energyIntensity(watts)
+  // t=0 → 1.5px.  t=1 → 3.5px.  Change remains perceptible but subtle.
   return 1.5 + t * 2
 }
 
@@ -106,11 +102,14 @@ const flows = computed<FlowPath[]>(() => {
   const solarChargesBattery = battCharge && solarActive
   const gridChargesBattery  = battCharge && !solarActive
 
-  const specs: Array<{ id: string; x1: number; y1: number; x2: number; y2: number; color: string; active: boolean; watts: number }> = [
+  const specs: Array<{
+    id: string; x1: number; y1: number; x2: number; y2: number
+    color: string; active: boolean; watts: number
+  }> = [
     {
       id: 'solar-battery',
-      x1: nodes.solar.cx,    y1: nodes.solar.cy + 24,
-      x2: nodes.battery.cx - 20, y2: nodes.battery.cy - 20,
+      x1: nodes.solar.cx,         y1: nodes.solar.cy + 24,
+      x2: nodes.battery.cx - 20,  y2: nodes.battery.cy - 20,
       color: 'var(--color-solar)',
       active: solarChargesBattery,
       watts: solarChargesBattery ? chargeW : 0,
@@ -192,15 +191,16 @@ const batteryLabel = computed(() => {
   return `${b.chargePercent}%`
 })
 
+// Which nodes are the active *source* of energy right now.
+// Only source nodes pulse — sinks (Home) don't generate.
+// Grid importing is deliberately excluded: it's infrastructure, not generation.
+// Pulsing it would imply urgency rather than quiet observation.
 const activeSources = computed(() => ({
-  solar:   props.snapshot?.solar.isGenerating     ?? false,
-  battery: props.snapshot?.battery.isDischarging  ?? false,
-  grid:    props.snapshot?.grid.isImporting       ?? false,
+  solar:   props.snapshot?.solar.isGenerating    ?? false,
+  battery: props.snapshot?.battery.isDischarging ?? false,
 }))
 
-// ─── Dormant topology (shown while loading) ────────────────────────────────────
-// Static bezier paths for all 6 connections — same geometry as live paths but
-// computed without snapshot data (all inactive endpoints, midpoint control points).
+// ─── Dormant topology ──────────────────────────────────────────────────────────
 
 const DORMANT_PATHS = (() => {
   const s = [
@@ -220,16 +220,14 @@ const DORMANT_PATHS = (() => {
 
 <template>
   <div class="energy-flow">
-    <!-- ── Dormant state: shown while connecting ────────────────────────────── -->
-    <!-- Shows the full energy topology in a ghosted state.
-         "Here is your home's energy system. Connecting now." -->
+
+    <!-- ── Dormant state: shown while connecting ─────────────────────────── -->
     <template v-if="isLoading">
       <svg
         viewBox="0 0 400 380"
         class="energy-flow__svg energy-flow__svg--dormant"
         aria-hidden="true"
       >
-        <!-- Dormant topology paths -->
         <g class="energy-flow__dormant-paths">
           <path
             v-for="(d, i) in DORMANT_PATHS"
@@ -241,7 +239,6 @@ const DORMANT_PATHS = (() => {
           />
         </g>
 
-        <!-- Dormant nodes -->
         <g class="energy-flow__dormant-nodes">
           <!-- Solar -->
           <circle :cx="nodes.solar.cx"   :cy="nodes.solar.cy"   r="22" class="energy-flow__dormant-node" />
@@ -275,7 +272,6 @@ const DORMANT_PATHS = (() => {
           </g>
         </g>
 
-        <!-- Subdued node labels -->
         <g class="energy-flow__dormant-labels">
           <text :x="nodes.solar.cx"   :y="nodes.solar.cy - 32"   text-anchor="middle" font-size="11" fill="var(--color-text-subdued)">Solar</text>
           <text :x="nodes.grid.cx"    :y="nodes.grid.cy - 32"    text-anchor="middle" font-size="11" fill="var(--color-text-subdued)">Grid</text>
@@ -285,7 +281,7 @@ const DORMANT_PATHS = (() => {
       </svg>
     </template>
 
-    <!-- ── Live state ───────────────────────────────────────────────────────── -->
+    <!-- ── Live state ───────────────────────────────────────────────────── -->
     <template v-else>
       <svg
         viewBox="0 0 400 380"
@@ -299,7 +295,6 @@ const DORMANT_PATHS = (() => {
         </desc>
 
         <defs>
-          <!-- Arrow markers per flow. Active paths use the flow colour; inactive use border colour. -->
           <marker
             v-for="flow in flows"
             :id="`arrow-${flow.id}`"
@@ -314,10 +309,9 @@ const DORMANT_PATHS = (() => {
           </marker>
         </defs>
 
-        <!-- ── Flow paths ─────────────────────────────────────────────────── -->
-        <!-- Quadratic bezier curves. pathLength="100" normalises stroke-dasharray
-             so the dash animation speed matches the set --flow-duration regardless
-             of the actual arc length of each curve. -->
+        <!-- ── Flow paths ──────────────────────────────────────────────── -->
+        <!-- pathLength="100" normalises stroke-dasharray so --flow-duration
+             controls perceived speed regardless of actual arc length. -->
         <g class="energy-flow__paths">
           <path
             v-for="flow in flows"
@@ -334,8 +328,7 @@ const DORMANT_PATHS = (() => {
           />
         </g>
 
-        <!-- ── Watt labels on active paths ───────────────────────────────── -->
-        <!-- Label positioned at bezier midpoint (t=0.5), not line midpoint. -->
+        <!-- ── Watt labels on active paths ─────────────────────────────── -->
         <g class="energy-flow__labels">
           <text
             v-for="flow in flows.filter(f => f.active && f.watts > 0)"
@@ -346,10 +339,11 @@ const DORMANT_PATHS = (() => {
             :fill="flow.color"
             text-anchor="middle"
             font-size="11"
+            font-variant-numeric="tabular-nums"
           >{{ wattsLabel(flow.watts) }}</text>
         </g>
 
-        <!-- ── Solar node ─────────────────────────────────────────────────── -->
+        <!-- ── Solar node ──────────────────────────────────────────────── -->
         <g class="energy-flow__node">
           <circle
             :cx="nodes.solar.cx" :cy="nodes.solar.cy" r="22"
@@ -357,6 +351,7 @@ const DORMANT_PATHS = (() => {
             stroke="var(--color-solar)"
             stroke-width="2"
             :class="{ 'energy-flow__node-circle--pulse': activeSources.solar }"
+            style="--node-color: var(--color-solar)"
           />
           <g :transform="`translate(${nodes.solar.cx}, ${nodes.solar.cy})`" fill="none" stroke="var(--color-solar)" stroke-width="1.5" stroke-linecap="round">
             <circle cx="0" cy="0" r="4.5" />
@@ -373,11 +368,11 @@ const DORMANT_PATHS = (() => {
           <text
             v-if="snapshot?.solar.generatingWatts"
             :x="nodes.solar.cx" :y="nodes.solar.cy + 40"
-            text-anchor="middle" font-size="11" fill="var(--color-solar)"
+            text-anchor="middle" font-size="11" font-variant-numeric="tabular-nums" fill="var(--color-solar)"
           >{{ wattsLabel(snapshot.solar.generatingWatts) }}</text>
         </g>
 
-        <!-- ── Grid node ──────────────────────────────────────────────────── -->
+        <!-- ── Grid node ───────────────────────────────────────────────── -->
         <g class="energy-flow__node">
           <circle
             :cx="nodes.grid.cx" :cy="nodes.grid.cy" r="22"
@@ -395,13 +390,17 @@ const DORMANT_PATHS = (() => {
           <text :x="nodes.grid.cx" :y="nodes.grid.cy - 32" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)">Grid</text>
         </g>
 
-        <!-- ── Battery node ───────────────────────────────────────────────── -->
+        <!-- ── Battery node ────────────────────────────────────────────── -->
+        <!-- Battery pulses when discharging — it is the active energy source.
+             --node-color drives the drop-shadow colour in the shared @keyframes. -->
         <g class="energy-flow__node">
           <circle
             :cx="nodes.battery.cx" :cy="nodes.battery.cy" r="22"
             fill="var(--color-surface-raised)"
             :stroke="snapshot?.battery.isCharging ? 'var(--color-battery-charging)' : snapshot?.battery.isDischarging ? 'var(--color-battery-discharging)' : 'var(--color-border)'"
             stroke-width="2"
+            :class="{ 'energy-flow__node-circle--pulse': activeSources.battery }"
+            style="--node-color: var(--color-battery-discharging)"
           />
           <g :transform="`translate(${nodes.battery.cx}, ${nodes.battery.cy})`" fill="none" stroke-linecap="round">
             <rect x="-7" y="-5.5" width="14" height="11" rx="2"
@@ -425,12 +424,12 @@ const DORMANT_PATHS = (() => {
           <text
             v-if="batteryLabel"
             :x="nodes.battery.cx" :y="nodes.battery.cy + 40"
-            text-anchor="middle" font-size="11"
+            text-anchor="middle" font-size="11" font-variant-numeric="tabular-nums"
             :fill="snapshot?.battery.isCharging ? 'var(--color-battery-charging)' : snapshot?.battery.isDischarging ? 'var(--color-battery-discharging)' : 'var(--color-text-subdued)'"
           >{{ batteryLabel }}</text>
         </g>
 
-        <!-- ── Home node ──────────────────────────────────────────────────── -->
+        <!-- ── Home node ───────────────────────────────────────────────── -->
         <g class="energy-flow__node">
           <circle
             :cx="nodes.home.cx" :cy="nodes.home.cy" r="22"
@@ -447,7 +446,7 @@ const DORMANT_PATHS = (() => {
           <text
             v-if="snapshot?.home.consumingWatts"
             :x="nodes.home.cx" :y="nodes.home.cy - 32"
-            text-anchor="middle" font-size="11" fill="var(--color-text-subdued)"
+            text-anchor="middle" font-size="11" font-variant-numeric="tabular-nums" fill="var(--color-text-subdued)"
           >{{ wattsLabel(snapshot.home.consumingWatts) }}</text>
         </g>
       </svg>
@@ -472,8 +471,7 @@ const DORMANT_PATHS = (() => {
   opacity: 0.35;
 }
 
-/* Breathing animation on dormant node circles.
-   Very slow (4s) — this is waiting, not loading. */
+/* Slow 4s breath — this is waiting, not loading. */
 .energy-flow__dormant-node {
   fill: var(--color-surface-raised);
   stroke: var(--color-border);
@@ -506,8 +504,6 @@ const DORMANT_PATHS = (() => {
   opacity: 0.18;
 }
 
-/* Dash animation: pathLength="100" normalises the pattern so --flow-duration
-   controls speed consistently regardless of the bezier arc length. */
 @media (prefers-reduced-motion: no-preference) {
   .energy-flow__path--active {
     stroke-dasharray: 6 4;
@@ -520,7 +516,9 @@ const DORMANT_PATHS = (() => {
   to   { stroke-dashoffset: -10; }
 }
 
-/* Active source node: slow breathing glow signals "this node is contributing". */
+/* Active energy source nodes pulse at their own concept colour.
+   --node-color is set as an inline style per-node so the same @keyframes
+   drives solar (amber) and battery-discharging (blue) with their own colours. */
 @media (prefers-reduced-motion: no-preference) {
   .energy-flow__node-circle--pulse {
     animation: node-pulse 3s ease-in-out infinite;
@@ -529,11 +527,10 @@ const DORMANT_PATHS = (() => {
 
 @keyframes node-pulse {
   0%, 100% { filter: drop-shadow(0 0 0px transparent); }
-  50%       { filter: drop-shadow(0 0 6px var(--color-solar)); }
+  50%       { filter: drop-shadow(0 0 6px var(--node-color, currentColor)); }
 }
 
 .energy-flow__watt-label {
-  font-variant-numeric: tabular-nums;
   font-weight: 600;
   opacity: 0.9;
 }

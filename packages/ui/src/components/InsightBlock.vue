@@ -137,9 +137,11 @@ const contentKey = computed(() => `${props.title}__${props.description}`)
 
 .insight-block__detail {
   margin: var(--space-3) 0 0 0;
+  padding-left: var(--space-3);
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--color-text-subdued);
+  border-left: 2px solid var(--color-border);
 }
 
 /* ── Insight content cross-fade ─────────────────────────────────────────────

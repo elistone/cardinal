@@ -46,6 +46,24 @@ const gridDirection = computed(() => {
   return 'Idle'
 })
 
+// Dynamic accent colours — reflect the current energy state so the card's
+// visual treatment matches what the energy flow diagram shows for the same node.
+const batteryAccentColor = computed(() => {
+  const b = props.snapshot?.battery
+  if (!b) return 'var(--color-battery-idle)'
+  if (b.isCharging)    return 'var(--color-battery-charging)'
+  if (b.isDischarging) return 'var(--color-battery-discharging)'
+  return 'var(--color-battery-idle)'
+})
+
+const gridAccentColor = computed(() => {
+  const g = props.snapshot?.grid
+  if (!g) return 'var(--color-battery-idle)'  // neutral grey when no data
+  if (g.isExporting) return 'var(--color-grid-export)'
+  if (g.isImporting) return 'var(--color-grid-import)'
+  return 'var(--color-battery-idle)'           // idle: neutral grey
+})
+
 function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): boolean {
   if (!props.health) return false
   const h = props.health.live
@@ -101,6 +119,7 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
               unit="W"
               concept="battery"
               :direction-label="batteryDirection"
+              :accent-color="batteryAccentColor"
             />
           </div>
           <div role="listitem">
@@ -110,6 +129,7 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
               unit="W"
               concept="grid"
               :direction-label="gridDirection"
+              :accent-color="gridAccentColor"
             />
           </div>
           <div role="listitem">

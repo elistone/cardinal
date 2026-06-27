@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAnimatedNumber } from '../composables/useAnimatedNumber.js'
+import { energyIntensity } from '../utils/energyIntensity.js'
 
 interface Props {
   label: string
@@ -9,12 +10,40 @@ interface Props {
   concept: 'solar' | 'battery' | 'grid' | 'home'
   directionLabel?: string
   isLoading?: boolean
+  // Overrides the concept-default accent colour. Pass a CSS value such as
+  // 'var(--color-battery-discharging)' to reflect the current energy state.
+  // When omitted, the concept's primary colour is used as a fallback.
+  accentColor?: string
 }
 
 const props = defineProps<Props>()
 
+// Concept-default accent colours — overridden by `accentColor` prop when the
+// parent (NowPanel) knows the specific state (charging vs discharging, etc.).
+const CONCEPT_COLORS: Record<Props['concept'], string> = {
+  solar:   'var(--color-solar)',
+  battery: 'var(--color-battery-charging)',
+  grid:    'var(--color-grid-import)',
+  home:    'var(--color-home)',
+}
+
+// Normalised intensity [0, 1] drives all visual magnitude cues:
+// accent bar height, accent bar opacity, and ambient background tint.
+// Uses the same log scale as EnergyFlowDiagram so they respond identically.
+const intensity = computed(() =>
+  props.value !== null && props.value > 0 ? energyIntensity(props.value) : 0,
+)
+
+// CSS variables applied to the root element. Transitions on height and opacity
+// produce a smooth visual response as power levels change between readings.
+const cardStyle = computed(() => ({
+  '--metric-accent':      props.accentColor ?? CONCEPT_COLORS[props.concept],
+  '--metric-accent-h':    `${2 + intensity.value * 2}px`,
+  '--metric-accent-op':   `${(0.45 + intensity.value * 0.55).toFixed(2)}`,
+  '--metric-bg-op':       `${(intensity.value * 0.05).toFixed(3)}`,
+}))
+
 // Animated display value — smoothly counts between readings.
-// The composable respects prefers-reduced-motion and cancels on unmount.
 const animatedValue = useAnimatedNumber(() => props.value)
 
 function formatValue(value: number, unit: string): string {
@@ -41,36 +70,39 @@ const displayUnit = computed(() => {
   return resolvedUnit(animatedValue.value, props.unit)
 })
 
-// The screen-reader announcement uses the *final* prop value, not the animated
-// intermediate — screen readers should announce the settled number, not every frame.
+// Screen-reader announcement uses the *final* prop value, not the animated
+// intermediate — assistive technology hears the settled number, not each frame.
 const srValue = computed(() => {
   if (props.value === null) return `${props.label}: unavailable`
   return `${props.label}: ${formatValue(props.value, props.unit)} ${resolvedUnit(props.value, props.unit)}`
 })
 
-// Flash class fires when the value prop changes to give a brief brightness pulse.
-// String-coerced so the key is always a valid PropertyKey (not null).
+// Forces the flash animation to replay on each settled value change.
 const flashKey = computed(() => String(props.value))
 </script>
 
 <template>
   <div
     class="metric-card"
-    :class="[`metric-card--${concept}`, { 'metric-card--loading': isLoading, 'metric-card--unavailable': value === null && !isLoading }]"
+    :class="[`metric-card--${concept}`, {
+      'metric-card--loading': isLoading,
+      'metric-card--unavailable': value === null && !isLoading,
+    }]"
+    :style="cardStyle"
   >
+    <!-- ::before — accent bar (height and opacity scale with intensity)    -->
+    <!-- ::after  — ambient background tint (very low opacity, same colour) -->
+
     <template v-if="isLoading">
       <div class="metric-card__skeleton metric-card__skeleton--value" aria-hidden="true" />
       <div class="metric-card__skeleton metric-card__skeleton--label" aria-hidden="true" />
     </template>
     <template v-else>
-      <!-- Visually-hidden live region announces the final settled value,
-           not intermediate animation frames. -->
       <span class="metric-card__sr-announce" aria-live="polite" aria-atomic="true">
         {{ srValue }}
       </span>
 
       <div class="metric-card__value-row" aria-hidden="true">
-        <!-- The key forces the flash animation to replay on each value change. -->
         <span :key="flashKey" class="metric-card__value metric-card__value--flash">
           {{ displayValue }}
         </span>
@@ -97,22 +129,38 @@ const flashKey = computed(() => String(props.value))
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   position: relative;
-  overflow: visible;
+  /* overflow: hidden clips the ::before accent bar at the top corners,
+     rounding it to match the card's border-radius. */
+  overflow: hidden;
+  /* Subtle inner highlight suggests physical surface depth. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+/* Accent bar — height and opacity scale with --metric-accent-h / --metric-accent-op.
+   Transitions produce a smooth visual response as power changes between readings. */
 .metric-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: var(--metric-accent-h, 2px);
+  background: var(--metric-accent, var(--color-home));
+  opacity: var(--metric-accent-op, 0.6);
+  transition: background 400ms ease, height 400ms ease, opacity 400ms ease;
 }
 
-.metric-card--solar::before    { background: var(--color-solar); }
-.metric-card--battery::before  { background: var(--color-battery-charging); }
-.metric-card--grid::before     { background: var(--color-grid-import); }
-.metric-card--home::before     { background: var(--color-home); }
+/* Ambient background tint — uses the same concept colour at very low opacity
+   (max 5%). Mirrors the InsightBlock::after pattern: atmosphere, not colour. */
+.metric-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--metric-accent, transparent);
+  opacity: var(--metric-bg-op, 0);
+  pointer-events: none;
+  transition: background 400ms ease, opacity 600ms ease;
+}
 
 .metric-card__value-row {
   display: flex;
@@ -127,10 +175,12 @@ const flashKey = computed(() => String(props.value))
   font-variant-numeric: tabular-nums;
   line-height: 1;
   color: var(--color-text-primary);
+  position: relative;
+  z-index: 1;
 }
 
-/* Brief brightness pulse on each value update. GPU-composited via filter.
-   The @keyframes fires because the :key binding forces element replacement. */
+/* Brief brightness pulse on each settled value change. Fires because :key
+   binding forces element replacement, replaying the CSS animation. */
 @media (prefers-reduced-motion: no-preference) {
   .metric-card__value--flash {
     animation: value-flash 120ms ease-out;
@@ -152,9 +202,11 @@ const flashKey = computed(() => String(props.value))
   color: var(--color-text-secondary);
   align-self: flex-end;
   padding-bottom: 2px;
+  position: relative;
+  z-index: 1;
 }
 
-/* Unit cross-fade when W→kW threshold is crossed. */
+/* Unit cross-fade when W → kW threshold is crossed. */
 .unit-enter-active { transition: opacity 200ms ease-out; }
 .unit-leave-active { transition: opacity 150ms ease-in; position: absolute; }
 .unit-enter-from   { opacity: 0; }
@@ -165,11 +217,15 @@ const flashKey = computed(() => String(props.value))
   .unit-leave-active { transition: none; }
 }
 
+/* Direction label picks up a tint from the accent colour so "Charging",
+   "Importing", etc. are visually connected to the card's current state. */
 .metric-card__direction {
   margin: 0 0 var(--space-1) 0;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--color-text-subdued);
+  color: color-mix(in srgb, var(--metric-accent) 55%, var(--color-text-subdued) 45%);
+  position: relative;
+  z-index: 1;
 }
 
 .metric-card__label {
@@ -177,9 +233,11 @@ const flashKey = computed(() => String(props.value))
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-secondary);
+  position: relative;
+  z-index: 1;
 }
 
-/* Screen-reader only live region — visually hidden but announced by screen readers */
+/* Screen-reader-only live region */
 .metric-card__sr-announce {
   position: absolute;
   width: 1px;
@@ -228,7 +286,7 @@ const flashKey = computed(() => String(props.value))
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
 }
 </style>

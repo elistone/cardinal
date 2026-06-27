@@ -68,20 +68,30 @@ Common config directory locations:
 | Docker | Whatever you mounted — check your `compose.yml` |
 | Core (venv) | The directory you passed with `--config` |
 
-### Copy files (different machine)
+### Deploy to a remote machine
 
-If HA runs on a separate machine, copy the integration after each build:
+If HA runs on a separate machine, use `pnpm local:deploy`. This builds a clean production bundle and rsyncs the entire integration to HA in one step.
+
+**First-time setup:**
 
 ```sh
-# Build first
-pnpm build --filter @cardinal/frontend
-
-# Copy to HA
-scp -r apps/integration/custom_components/cardinal \
-        user@homeassistant:/path/to/ha-config/custom_components/
+cp .env.example .env.local
+# Edit .env.local and set HA_HOST to your HA IP or hostname
 ```
 
-For active development, the symlink approach on the same machine is strongly preferred.
+**Deploy:**
+
+```sh
+pnpm local:deploy
+```
+
+The script builds the frontend, then rsyncs `apps/integration/custom_components/cardinal/` to `HA_CONFIG_PATH/custom_components/cardinal/` via SSH. After it completes, restart Home Assistant to pick up the changes.
+
+**Auto-restart (HAOS only):**
+
+Set `HA_RESTART=true` in `.env.local` and the script will call `ha core restart` via SSH after the file transfer.
+
+See `.env.example` for all available variables.
 
 ---
 

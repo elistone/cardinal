@@ -10,7 +10,8 @@
     "coverage": "turbo coverage",
     "lint": "turbo lint",
     "screenshot": "turbo build-storybook && pnpm --filter @cardinal/screenshots screenshot",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "local:deploy": "node scripts/local-deploy.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.0",

@@ -79,23 +79,19 @@ Current (`apps/integration/custom_components/cardinal/manifest.json`):
 }
 ```
 
-### Missing: `issue_tracker`
+### `issue_tracker`
 
-HACS validation requires an `issue_tracker` URL. Without it the integration fails HACS checks.
+- [x] Added `"issue_tracker": "https://github.com/eli-stone/cardinal/issues"`
 
-- [ ] Add `"issue_tracker": "https://github.com/eli-stone/cardinal/issues"`
+### `codeowners`
 
-### Missing: `codeowners`
+- [x] Added `"codeowners": ["@eli-stone"]`
 
-`codeowners` is an empty array. HACS requires at least one GitHub username. An empty array causes HACS validation to fail.
+### Minimum Home Assistant version
 
-- [ ] Add at least one GitHub username, e.g. `"codeowners": ["@eli-stone"]`
+The minimum supported version is `2024.4.0` — the release that added `ConfigFlowResult`, `_get_reconfigure_entry()`, and `async_update_reload_and_abort()`, which Cardinal's config flow uses.
 
-### Missing: minimum Home Assistant version
-
-The Python `type` alias syntax (`type CardinalConfigEntry = ConfigEntry`) used in `__init__.py` requires Python 3.12, which shipped with Home Assistant 2024.1. The manifest does not declare this constraint, leaving users on older HA versions with a confusing startup error.
-
-- [ ] Add `"homeassistant": "2024.1.0"` to declare the minimum supported HA version
+- [x] Added `"homeassistant": "2024.4.0"` to manifest
 
 ### `documentation` URL
 
@@ -170,8 +166,8 @@ Example `strings.json` structure for Cardinal's config flow:
 }
 ```
 
-- [ ] Create `apps/integration/custom_components/cardinal/strings.json`
-- [ ] Create `apps/integration/custom_components/cardinal/translations/en.json` with identical content
+- [x] Created `apps/integration/custom_components/cardinal/strings.json`
+- [x] Created `apps/integration/custom_components/cardinal/translations/en.json` with identical content
 
 ---
 
@@ -181,7 +177,7 @@ The documentation instructs users to go to **Settings → Integrations → Cardi
 
 Currently users must delete the integration and re-add it to change mappings, which loses their config entry history.
 
-- [ ] Implement `async_step_reconfigure` in `CardinalConfigFlow` that pre-fills the form with the current `config_entry.data` values
+- [x] Implemented `async_step_reconfigure` — pre-fills the form with current `config_entry.data` values
 
 ---
 
@@ -196,7 +192,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: CardinalConfigEntry) ->
 
 When a config entry is removed, the sidebar panel remains registered until HA restarts. This is not a hard HACS requirement, but it is expected cleanup behaviour and will cause test failures if HACS integration tests are ever run against Cardinal.
 
-- [ ] Call the appropriate HA panel deregistration in `async_unload_entry`
+- [x] `async_unload_entry` now calls `async_remove_panel`
 
 ---
 
@@ -257,17 +253,17 @@ When all items above are resolved:
 
 - [ ] Move `hacs.json` to repository root
 - [ ] Add `"zip_release": true` to `hacs.json`
-- [ ] Add `"issue_tracker"` to `manifest.json`
-- [ ] Add at least one entry to `"codeowners"` in `manifest.json`
+- [x] Added `"issue_tracker"` to `manifest.json`
+- [x] Added `"codeowners": ["@eli-stone"]` to `manifest.json`
 - [ ] Write a real license into `LICENSE`
 
 ### Expected quality (flagged by HACS validation or HA quality checks)
 
-- [ ] Create `strings.json` with config flow labels
-- [ ] Create `translations/en.json` (same content)
-- [ ] Add `"homeassistant": "2024.1.0"` to `manifest.json`
-- [ ] Implement `async_step_reconfigure` in the config flow
-- [ ] Fix `async_unload_entry` to deregister the panel
+- [x] Created `strings.json` with config flow labels
+- [x] Created `translations/en.json` (same content)
+- [x] Added `"homeassistant": "2024.4.0"` to `manifest.json`
+- [x] Implemented `async_step_reconfigure` in the config flow
+- [x] Fixed `async_unload_entry` to deregister the panel
 
 ### Recommended (discoverability and user experience)
 

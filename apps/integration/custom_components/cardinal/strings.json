@@ -1,0 +1,68 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Cardinal",
+        "description": "Map your Home Assistant sensors to Cardinal's energy concepts. Leave any field blank if you don't have that sensor.",
+        "data": {
+          "solar_power": "Solar power",
+          "battery_power": "Battery power (signed sensor)",
+          "battery_charge_power": "Battery charge power",
+          "battery_discharge_power": "Battery discharge power",
+          "battery_state_of_charge": "Battery state of charge",
+          "grid_power": "Grid power (signed sensor)",
+          "grid_import_power": "Grid import power",
+          "grid_export_power": "Grid export power",
+          "home_consumption": "Home consumption",
+          "solar_generated_today": "Solar generated today",
+          "battery_charged_today": "Battery charged today",
+          "battery_discharged_today": "Battery discharged today",
+          "grid_imported_today": "Grid imported today",
+          "grid_exported_today": "Grid exported today",
+          "home_consumed_today": "Home consumed today",
+          "import_rate": "Import rate",
+          "export_rate": "Export rate",
+          "currency": "Currency"
+        },
+        "data_description": {
+          "battery_power": "For inverters with a single sensor: positive = charging, negative = discharging. Use this OR the separate charge/discharge fields below, not both.",
+          "battery_charge_power": "For inverters with separate charge and discharge sensors.",
+          "battery_discharge_power": "For inverters with separate charge and discharge sensors.",
+          "grid_power": "For inverters with a single sensor: positive = importing, negative = exporting. Use this OR the separate import/export fields below, not both.",
+          "grid_import_power": "For inverters with separate import and export sensors.",
+          "grid_export_power": "For inverters with separate import and export sensors.",
+          "import_rate": "Current electricity import price per kWh.",
+          "export_rate": "Current electricity export price per kWh.",
+          "currency": "ISO currency code, e.g. GBP, EUR, USD."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Cardinal",
+        "description": "Update your sensor mappings. Current values are shown as defaults.",
+        "data": {
+          "solar_power": "Solar power",
+          "battery_power": "Battery power (signed sensor)",
+          "battery_charge_power": "Battery charge power",
+          "battery_discharge_power": "Battery discharge power",
+          "battery_state_of_charge": "Battery state of charge",
+          "grid_power": "Grid power (signed sensor)",
+          "grid_import_power": "Grid import power",
+          "grid_export_power": "Grid export power",
+          "home_consumption": "Home consumption",
+          "solar_generated_today": "Solar generated today",
+          "battery_charged_today": "Battery charged today",
+          "battery_discharged_today": "Battery discharged today",
+          "grid_imported_today": "Grid imported today",
+          "grid_exported_today": "Grid exported today",
+          "home_consumed_today": "Home consumed today",
+          "import_rate": "Import rate",
+          "export_rate": "Export rate",
+          "currency": "Currency"
+        }
+      }
+    },
+    "abort": {
+      "reconfigure_successful": "Cardinal has been reconfigured and is reloading."
+    }
+  }
+}

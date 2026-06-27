@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import logging
 from pathlib import Path
 
 from homeassistant.components.frontend import async_register_panel
@@ -31,14 +34,20 @@ from .const import (
     PANEL_URL,
 )
 
+_LOGGER = logging.getLogger(__name__)
+
 FRONTEND_PATH = Path(__file__).parent / FRONTEND_DIR
 STATIC_URL = f"/{DOMAIN}"
 
 
 async def async_setup_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(STATIC_URL, str(FRONTEND_PATH), cache_headers=False)]
-    )
+    try:
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(STATIC_URL, str(FRONTEND_PATH), cache_headers=False)]
+        )
+    except ValueError:
+        # Static path is already registered from a previous setup — safe to continue.
+        _LOGGER.debug("Static path %s already registered, skipping", STATIC_URL)
 
     async_register_panel(
         hass,
@@ -75,4 +84,6 @@ async def async_setup_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
             },
         },
         require_admin=False,
+        update=True,
     )
+    _LOGGER.debug("Cardinal panel registered at /%s", PANEL_URL)

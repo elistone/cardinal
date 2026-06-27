@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import type { ConfigurationHealth, SensorHealthStatus } from '@cardinal/domain'
+import { LiveIndicator } from '@cardinal/ui'
 
 interface Props {
   health: ConfigurationHealth | null
   isDisconnected: boolean
   showDiagnostics: boolean
+  lastUpdated?: Date | null
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  lastUpdated: null,
+})
+
 defineEmits<{ openHealth: []; toggleDiagnostics: [] }>()
 
 function overallStatus(health: ConfigurationHealth): SensorHealthStatus {
@@ -35,6 +40,13 @@ const statusColors: Record<SensorHealthStatus, string> = {
     <span class="app-header__wordmark">Cardinal</span>
 
     <div class="app-header__actions">
+      <!-- LIVE indicator: shown when connected and data has arrived.
+           Fades out and the reconnecting badge appears when connection is lost. -->
+      <LiveIndicator
+        v-if="!isDisconnected"
+        :last-updated="lastUpdated"
+      />
+
       <span v-if="isDisconnected" class="app-header__disconnected-badge">
         Reconnecting…
       </span>

@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import type { EnergySnapshot, EnergyInsight, ConfigurationHealth } from '@cardinal/domain'
 import NowPanel from '../components/NowPanel.vue'
 import SensorHealthOverlay from '../components/SensorHealthOverlay.vue'
+import { useShowroomMode } from '../composables/useShowroomMode.js'
+import { SHOWROOM_SCENES } from '../showroom/scenes.js'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -210,6 +212,48 @@ export const Disconnected: Story = {
         <div style="opacity:0.5;pointer-events:none;flex:1;display:flex;flex-direction:column;">
           <NowPanel :snapshot="snapshot" :insight="insight" />
         </div>
+      </div>
+    `,
+  }),
+}
+
+// ─── Showroom ─────────────────────────────────────────────────────────────────
+// Cycles all 8 scenes through a complete day, demonstrating every energy state
+// Cardinal can explain. Each scene holds for ~4s then dissolves to the next.
+// This is the authoritative demo for docs, screenshots, and marketing.
+
+export const Showroom: Story = {
+  name: 'Showroom — Complete Day',
+  render: () => ({
+    components: { NowPanel },
+    setup() {
+      const { snapshot, insight, sceneLabel, sceneTime } = useShowroomMode(SHOWROOM_SCENES)
+      return { snapshot, insight, sceneLabel, sceneTime }
+    },
+    template: `
+      <div style="display:flex;flex-direction:column;flex:1;position:relative;">
+        <div style="
+          position: absolute;
+          bottom: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          color: var(--color-text-subdued);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          z-index: 10;
+        ">
+          <span style="
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--color-positive);
+          "></span>
+          Showroom · {{ sceneTime }} · {{ sceneLabel }}
+        </div>
+        <NowPanel :snapshot="snapshot" :insight="insight" />
       </div>
     `,
   }),

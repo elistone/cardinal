@@ -101,8 +101,25 @@ export const NoData: Story = {
 }
 
 export const Loading: Story = {
+  name: 'State — Dormant (connecting)',
   args: {
     snapshot: null,
     isLoading: true,
+  },
+}
+
+// Shows all six bezier flow paths active simultaneously — stress test of the
+// curve geometry and animation timing. Not a real-world energy state.
+export const AllPathsStressTest: Story = {
+  name: 'Debug — All Paths Active',
+  args: {
+    snapshot: {
+      timestamp: new Date(),
+      solar:   { generatingWatts: 4000, isGenerating: true },
+      battery: { chargePercent: 60, chargingWatts: 1200, dischargingWatts: 800, isCharging: true, isDischarging: false, isIdle: false },
+      grid:    { importingWatts: 300, exportingWatts: 1800, isImporting: true, isExporting: true, isIdle: false },
+      home:    { consumingWatts: 1400 },
+      tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
+    },
   },
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEnergyStore } from './stores/energy'
 import { NowPanel, SensorHealthOverlay, DiagnosticsPanel } from '@cardinal/ui'
@@ -9,6 +9,8 @@ import StateDisconnected from './components/StateDisconnected.vue'
 
 const store = useEnergyStore()
 const { snapshot, insight, health, isDisconnected, isConfigured } = storeToRefs(store)
+
+const lastUpdated = computed(() => snapshot.value?.timestamp ?? null)
 
 const healthOverlayOpen = ref(false)
 const showDiagnostics = ref(false)
@@ -20,6 +22,7 @@ const showDiagnostics = ref(false)
       :health="health"
       :is-disconnected="isDisconnected"
       :show-diagnostics="showDiagnostics"
+      :last-updated="lastUpdated"
       @open-health="healthOverlayOpen = true"
       @toggle-diagnostics="showDiagnostics = !showDiagnostics"
     />

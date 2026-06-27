@@ -3,6 +3,7 @@ export type {
   BatteryState,
   GridState,
   HomeState,
+  TariffState,
   EnergySnapshot,
 } from './energy.js'
 

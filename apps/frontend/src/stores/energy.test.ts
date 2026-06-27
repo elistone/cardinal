@@ -26,6 +26,7 @@ function makeSnapshot(): EnergySnapshot {
       isIdle: false,
     },
     home: { consumingWatts: 1000 },
+    tariffs: { importRate: null, exportRate: null, currency: 'GBP' },
   }
 }
 

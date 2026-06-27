@@ -15,6 +15,7 @@ const SOLAR_CHARGING: EnergySnapshot = {
   battery: { chargePercent: 68, chargingWatts: 1800, dischargingWatts: 0, isCharging: true, isDischarging: false, isIdle: false },
   grid:    { importingWatts: 0, exportingWatts: 800, isImporting: false, isExporting: true, isIdle: false },
   home:    { consumingWatts: 1000 },
+  tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
 }
 
 const SOLAR_EXPORTING: EnergySnapshot = {
@@ -23,6 +24,7 @@ const SOLAR_EXPORTING: EnergySnapshot = {
   battery: { chargePercent: 100, chargingWatts: 0, dischargingWatts: 0, isCharging: false, isDischarging: false, isIdle: true },
   grid:    { importingWatts: 0, exportingWatts: 3000, isImporting: false, isExporting: true, isIdle: false },
   home:    { consumingWatts: 1500 },
+  tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
 }
 
 const BATTERY_DISCHARGING: EnergySnapshot = {
@@ -31,6 +33,7 @@ const BATTERY_DISCHARGING: EnergySnapshot = {
   battery: { chargePercent: 80, chargingWatts: 0, dischargingWatts: 2000, isCharging: false, isDischarging: true, isIdle: false },
   grid:    { importingWatts: 0, exportingWatts: 0, isImporting: false, isExporting: false, isIdle: true },
   home:    { consumingWatts: 2000 },
+  tariffs: { importRate: null, exportRate: null, currency: 'GBP' },
 }
 
 const GRID_POWER: EnergySnapshot = {
@@ -39,6 +42,7 @@ const GRID_POWER: EnergySnapshot = {
   battery: { chargePercent: 55, chargingWatts: 0, dischargingWatts: 0, isCharging: false, isDischarging: false, isIdle: true },
   grid:    { importingWatts: 850, exportingWatts: 0, isImporting: true, isExporting: false, isIdle: false },
   home:    { consumingWatts: 850 },
+  tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
 }
 
 const ALL_CONFIGURED: ConfigurationHealth = {

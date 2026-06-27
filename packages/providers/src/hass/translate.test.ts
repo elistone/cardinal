@@ -51,6 +51,52 @@ describe('translateEnergySnapshot — solar', () => {
   })
 })
 
+describe('translateEnergySnapshot — battery sensor mode', () => {
+  it('stays in separate-sensor mode when charge entity is configured but has no state yet', () => {
+    // Regression: mode is determined by entity ID presence, not state arrival.
+    // If batteryChargePower is configured but the entity hasn't reported yet,
+    // the translator must not silently fall back to the signed-sensor path.
+    const snapshot = translateEnergySnapshot(
+      states(state('sensor.battery_power', '2000')), // signed sensor has state
+      {
+        batteryChargePower: 'sensor.battery_charge_power', // configured but no state in dict
+        batteryPower: 'sensor.battery_power',
+      },
+    )
+    // Separate mode selected — both charge and discharge read 0 (no state yet),
+    // not 2000 from the signed sensor.
+    expect(snapshot.battery.chargingWatts).toBe(0)
+    expect(snapshot.battery.dischargingWatts).toBe(0)
+    expect(snapshot.battery.isIdle).toBe(true)
+  })
+
+  it('stays in separate-sensor mode when discharge entity is configured but has no state yet', () => {
+    const snapshot = translateEnergySnapshot(
+      states(state('sensor.battery_power', '-1500')),
+      {
+        batteryDischargePower: 'sensor.battery_discharge_power',
+        batteryPower: 'sensor.battery_power',
+      },
+    )
+    expect(snapshot.battery.dischargingWatts).toBe(0)
+    expect(snapshot.battery.isIdle).toBe(true)
+  })
+})
+
+describe('translateEnergySnapshot — grid sensor mode', () => {
+  it('stays in separate-sensor mode when import entity is configured but has no state yet', () => {
+    const snapshot = translateEnergySnapshot(
+      states(state('sensor.grid_power', '800')),
+      {
+        gridImportPower: 'sensor.power_from_grid',
+        gridPower: 'sensor.grid_power',
+      },
+    )
+    expect(snapshot.grid.importingWatts).toBe(0)
+    expect(snapshot.grid.isIdle).toBe(true)
+  })
+})
+
 describe('translateEnergySnapshot — battery via separate sensors', () => {
   it('reads charging state from separate charge and discharge sensors', () => {
     const snapshot = translateEnergySnapshot(
@@ -429,5 +475,64 @@ describe('translateDailySummary — missing and unconfigured sensors', () => {
     expect(summary.battery.dischargedKwh).toBe(0)
     expect(summary.grid.exportedKwh).toBe(0)
     expect(summary.home.consumedKwh).toBe(0)
+  })
+})
+
+describe('translateEnergySnapshot — tariffs', () => {
+  it('reads import and export rates from configured entities', () => {
+    const snapshot = translateEnergySnapshot(
+      states(
+        state('sensor.octopus_import_rate', '0.2461'),
+        state('sensor.octopus_export_rate', '0.1500'),
+      ),
+      {
+        importRate: 'sensor.octopus_import_rate',
+        exportRate: 'sensor.octopus_export_rate',
+        currency: 'GBP',
+      },
+    )
+    expect(snapshot.tariffs.importRate).toBeCloseTo(0.2461)
+    expect(snapshot.tariffs.exportRate).toBeCloseTo(0.1500)
+    expect(snapshot.tariffs.currency).toBe('GBP')
+  })
+
+  it('returns null for import rate when the entity is not configured', () => {
+    const snapshot = translateEnergySnapshot(states(), {})
+    expect(snapshot.tariffs.importRate).toBeNull()
+    expect(snapshot.tariffs.exportRate).toBeNull()
+  })
+
+  it('returns null for a rate entity that is unavailable', () => {
+    const snapshot = translateEnergySnapshot(
+      states(state('sensor.octopus_import_rate', 'unavailable')),
+      { importRate: 'sensor.octopus_import_rate' },
+    )
+    expect(snapshot.tariffs.importRate).toBeNull()
+  })
+
+  it('returns null for a rate entity that is unknown', () => {
+    const snapshot = translateEnergySnapshot(
+      states(state('sensor.octopus_import_rate', 'unknown')),
+      { importRate: 'sensor.octopus_import_rate' },
+    )
+    expect(snapshot.tariffs.importRate).toBeNull()
+  })
+
+  it('defaults currency to GBP when not configured', () => {
+    const snapshot = translateEnergySnapshot(states(), {})
+    expect(snapshot.tariffs.currency).toBe('GBP')
+  })
+
+  it('uses the configured currency code', () => {
+    const snapshot = translateEnergySnapshot(states(), { currency: 'EUR' })
+    expect(snapshot.tariffs.currency).toBe('EUR')
+  })
+
+  it('handles a zero rate (e.g. free overnight charging) as a valid numeric value', () => {
+    const snapshot = translateEnergySnapshot(
+      states(state('sensor.import_rate', '0')),
+      { importRate: 'sensor.import_rate' },
+    )
+    expect(snapshot.tariffs.importRate).toBe(0)
   })
 })

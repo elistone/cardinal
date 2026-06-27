@@ -46,6 +46,8 @@ export class HassEnergyProvider implements EnergyProvider {
       this.mapping.gridImportedToday,
       this.mapping.gridExportedToday,
       this.mapping.homeConsumedToday,
+      this.mapping.importRate,
+      this.mapping.exportRate,
     ].filter(Boolean) as string[])
 
     const hasDailySensors = [

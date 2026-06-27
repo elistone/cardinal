@@ -4,6 +4,7 @@ import type {
   BatteryState,
   GridState,
   HomeState,
+  TariffState,
 } from '@cardinal/domain'
 
 export function makeSolar(generatingWatts: number): SolarState {
@@ -53,6 +54,7 @@ export function makeSnapshot(opts: {
   battery?: BatteryState
   grid?: GridState
   home?: HomeState
+  tariffs?: TariffState
   timestamp?: Date
 } = {}): EnergySnapshot {
   return {
@@ -61,5 +63,6 @@ export function makeSnapshot(opts: {
     battery: opts.battery ?? makeBattery(),
     grid: opts.grid ?? makeGrid(),
     home: opts.home ?? makeHome(1000),
+    tariffs: opts.tariffs ?? { importRate: null, exportRate: null, currency: 'GBP' },
   }
 }

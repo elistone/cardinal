@@ -28,5 +28,5 @@ export interface HassEntityMapping {
   homeConsumedToday?: string
   importRate?: string
   exportRate?: string
-  currency: string
+  currency?: string
 }

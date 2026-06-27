@@ -61,6 +61,23 @@ export interface HomeState {
 }
 
 /**
+ * The current electricity tariff rates, sourced from a tariff integration such
+ * as Octopus Energy.  Rates are null when the corresponding sensor has not been
+ * configured or has not yet reported a value.
+ *
+ * Cardinal treats rates as live data because dynamic tariffs (e.g. Octopus
+ * Agile) change throughout the day.
+ */
+export interface TariffState {
+  /** Current import price per kWh, in the configured currency. Null when unavailable. */
+  readonly importRate: number | null
+  /** Current export price per kWh, in the configured currency. Null when unavailable. */
+  readonly exportRate: number | null
+  /** ISO 4217 currency code. */
+  readonly currency: string
+}
+
+/**
  * A point-in-time snapshot of the home's complete energy system.
  *
  * This is the primary live data model in Cardinal. Providers produce it on
@@ -81,4 +98,6 @@ export interface EnergySnapshot {
   readonly grid: GridState
   /** Current state of home energy consumption. */
   readonly home: HomeState
+  /** Current electricity tariff rates. Always present; individual rates are null when unconfigured. */
+  readonly tariffs: TariffState
 }

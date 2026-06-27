@@ -1,5 +1,7 @@
-import type { EnergySnapshot, SolarState, BatteryState, GridState, HomeState, DailySummary } from '@cardinal/domain'
+import type { EnergySnapshot, SolarState, BatteryState, GridState, HomeState, TariffState, DailySummary } from '@cardinal/domain'
 import type { HassState } from './types.js'
+
+// ── Primitive parsers ─────────────────────────────────────────────────────────
 
 function parseWatts(state: HassState | undefined): number {
   if (!state) return 0
@@ -19,6 +21,14 @@ function parseKwh(state: HassState | undefined): number {
   return isNaN(value) ? 0 : Math.max(0, value)
 }
 
+function parseRate(state: HassState | undefined): number | null {
+  if (!state) return null
+  const value = parseFloat(state.state)
+  return isNaN(value) ? null : value
+}
+
+// ── Concept translators ───────────────────────────────────────────────────────
+
 function translateSolarState(powerState: HassState | undefined): SolarState {
   const generatingWatts = Math.max(0, parseWatts(powerState))
   return {
@@ -28,6 +38,11 @@ function translateSolarState(powerState: HassState | undefined): SolarState {
 }
 
 function translateBatteryState(options: {
+  // Whether the user configured separate charge/discharge sensors — determined
+  // from the entity mapping, not from whether a state has arrived.  This
+  // distinction matters: a configured entity that is temporarily unavailable
+  // must not silently fall through to the signed-sensor fallback.
+  useSeparateSensors: boolean
   powerState?: HassState
   chargePowerState?: HassState
   dischargePowerState?: HassState
@@ -36,12 +51,12 @@ function translateBatteryState(options: {
   let chargingWatts: number
   let dischargingWatts: number
 
-  if (options.chargePowerState !== undefined || options.dischargePowerState !== undefined) {
-    // Separate charge/discharge sensors (e.g. LuxPower Modbus).
+  if (options.useSeparateSensors) {
+    // Separate charge/discharge sensors (preferred; e.g. LuxPower, GivEnergy, FoxESS, Solis).
     chargingWatts = Math.max(0, parseWatts(options.chargePowerState))
     dischargingWatts = Math.max(0, parseWatts(options.dischargePowerState))
   } else {
-    // Single sensor: positive = charging, negative = discharging.
+    // Single signed sensor: positive = charging, negative = discharging.
     const net = parseWatts(options.powerState)
     chargingWatts = net > 0 ? net : 0
     dischargingWatts = net < 0 ? Math.abs(net) : 0
@@ -58,6 +73,9 @@ function translateBatteryState(options: {
 }
 
 function translateGridState(options: {
+  // Whether the user configured separate import/export sensors — determined
+  // from the entity mapping, not from whether a state has arrived.
+  useSeparateSensors: boolean
   powerState?: HassState
   importPowerState?: HassState
   exportPowerState?: HassState
@@ -65,12 +83,12 @@ function translateGridState(options: {
   let importingWatts: number
   let exportingWatts: number
 
-  if (options.importPowerState !== undefined || options.exportPowerState !== undefined) {
-    // Separate import/export sensors (e.g. LuxPower Modbus).
+  if (options.useSeparateSensors) {
+    // Separate import/export sensors (preferred; e.g. LuxPower Modbus meters).
     importingWatts = Math.max(0, parseWatts(options.importPowerState))
     exportingWatts = Math.max(0, parseWatts(options.exportPowerState))
   } else {
-    // Single sensor: positive = importing, negative = exporting.
+    // Single signed sensor: positive = importing, negative = exporting.
     const net = parseWatts(options.powerState)
     importingWatts = net > 0 ? net : 0
     exportingWatts = net < 0 ? Math.abs(net) : 0
@@ -91,6 +109,20 @@ function translateHomeState(powerState: HassState | undefined): HomeState {
   }
 }
 
+function translateTariffState(options: {
+  importRateState?: HassState
+  exportRateState?: HassState
+  currency: string
+}): TariffState {
+  return {
+    importRate: parseRate(options.importRateState),
+    exportRate: parseRate(options.exportRateState),
+    currency: options.currency,
+  }
+}
+
+// ── Public translators ────────────────────────────────────────────────────────
+
 export function translateEnergySnapshot(
   states: Record<string, HassState>,
   mapping: {
@@ -103,6 +135,9 @@ export function translateEnergySnapshot(
     gridImportPower?: string
     gridExportPower?: string
     homeConsumption?: string
+    importRate?: string
+    exportRate?: string
+    currency?: string
   },
 ): EnergySnapshot {
   return {
@@ -111,12 +146,14 @@ export function translateEnergySnapshot(
       mapping.solarPower ? states[mapping.solarPower] : undefined,
     ),
     battery: translateBatteryState({
+      useSeparateSensors: !!(mapping.batteryChargePower || mapping.batteryDischargePower),
       powerState: mapping.batteryPower ? states[mapping.batteryPower] : undefined,
       chargePowerState: mapping.batteryChargePower ? states[mapping.batteryChargePower] : undefined,
       dischargePowerState: mapping.batteryDischargePower ? states[mapping.batteryDischargePower] : undefined,
       socState: mapping.batteryStateOfCharge ? states[mapping.batteryStateOfCharge] : undefined,
     }),
     grid: translateGridState({
+      useSeparateSensors: !!(mapping.gridImportPower || mapping.gridExportPower),
       powerState: mapping.gridPower ? states[mapping.gridPower] : undefined,
       importPowerState: mapping.gridImportPower ? states[mapping.gridImportPower] : undefined,
       exportPowerState: mapping.gridExportPower ? states[mapping.gridExportPower] : undefined,
@@ -124,6 +161,11 @@ export function translateEnergySnapshot(
     home: translateHomeState(
       mapping.homeConsumption ? states[mapping.homeConsumption] : undefined,
     ),
+    tariffs: translateTariffState({
+      importRateState: mapping.importRate ? states[mapping.importRate] : undefined,
+      exportRateState: mapping.exportRate ? states[mapping.exportRate] : undefined,
+      currency: mapping.currency ?? 'GBP',
+    }),
   }
 }
 

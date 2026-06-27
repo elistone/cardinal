@@ -29,30 +29,56 @@ interface FlowPath {
   color: string
   active: boolean
   watts: number
+  strokeWidth: number
+  flowDuration: string
+}
+
+// Flow animation speed and stroke weight both scale with power magnitude.
+//
+// Speed: more watts = shorter duration = faster dash movement.
+// Curve: logarithmic so differences are perceptible at both low and high ends.
+//   At   100 W → ~2.2 s/cycle (slow, gentle)
+//   At  1000 W → ~1.4 s/cycle
+//   At  4000 W → ~0.8 s/cycle (brisk, purposeful)
+//
+// Stroke: 1.5 px at low watts, up to 3.5 px at high watts.
+// Using the same logarithmic scale keeps both properties visually consistent.
+
+function flowDuration(watts: number): string {
+  if (watts <= 0) return '1.2s'
+  const clamped = Math.max(50, Math.min(watts, 5000))
+  const t = Math.log10(clamped / 50) / Math.log10(5000 / 50)  // 0–1
+  const duration = 2.4 - t * 1.6                               // 2.4s → 0.8s
+  return `${duration.toFixed(2)}s`
+}
+
+function strokeWidth(watts: number): number {
+  if (watts <= 0) return 1.5
+  const clamped = Math.max(50, Math.min(watts, 5000))
+  const t = Math.log10(clamped / 50) / Math.log10(5000 / 50)
+  return 1.5 + t * 2                                           // 1.5 → 3.5
 }
 
 const flows = computed<FlowPath[]>(() => {
   const s = props.snapshot
 
-  const solarW  = s?.solar.generatingWatts  ?? 0
-  const chargeW = s?.battery.chargingWatts  ?? 0
-  const dischargeW = s?.battery.dischargingWatts ?? 0
-  const exportW = s?.grid.exportingWatts ?? 0
-  const importW = s?.grid.importingWatts ?? 0
-  const homeW   = s?.home.consumingWatts ?? 0
+  const solarW     = s?.solar.generatingWatts     ?? 0
+  const chargeW    = s?.battery.chargingWatts     ?? 0
+  const dischargeW = s?.battery.dischargingWatts  ?? 0
+  const exportW    = s?.grid.exportingWatts       ?? 0
+  const importW    = s?.grid.importingWatts       ?? 0
+  const homeW      = s?.home.consumingWatts       ?? 0
 
-  const solarActive   = s?.solar.isGenerating ?? false
-  const battCharge    = s?.battery.isCharging  ?? false
-  const battDischarge = s?.battery.isDischarging ?? false
-  const gridExport    = s?.grid.isExporting ?? false
-  const gridImport    = s?.grid.isImporting ?? false
+  const solarActive   = s?.solar.isGenerating      ?? false
+  const battCharge    = s?.battery.isCharging      ?? false
+  const battDischarge = s?.battery.isDischarging   ?? false
+  const gridExport    = s?.grid.isExporting        ?? false
+  const gridImport    = s?.grid.isImporting        ?? false
 
-  // Heuristic: if battery is charging and solar is generating, assume solar charges battery.
-  // If charging but no solar, grid is charging battery.
   const solarChargesBattery = battCharge && solarActive
   const gridChargesBattery  = battCharge && !solarActive
 
-  return [
+  const paths: Array<Omit<FlowPath, 'strokeWidth' | 'flowDuration'>> = [
     {
       id: 'solar-battery',
       x1: nodes.solar.cx, y1: nodes.solar.cy + 24,
@@ -102,6 +128,12 @@ const flows = computed<FlowPath[]>(() => {
       watts: gridChargesBattery ? chargeW : 0,
     },
   ]
+
+  return paths.map(p => ({
+    ...p,
+    strokeWidth: p.active ? strokeWidth(p.watts) : 1.5,
+    flowDuration: flowDuration(p.watts),
+  }))
 })
 
 function wattsLabel(watts: number): string {
@@ -116,6 +148,14 @@ const batteryLabel = computed(() => {
   if (b.isDischarging) return `${b.chargePercent}% ↓`
   return `${b.chargePercent}%`
 })
+
+// Whether a node is the dominant active source (drives the subtle pulse).
+const activeSources = computed(() => ({
+  solar:   props.snapshot?.solar.isGenerating ?? false,
+  battery: props.snapshot?.battery.isDischarging ?? false,
+  grid:    props.snapshot?.grid.isImporting ?? false,
+  home:    (props.snapshot?.home.consumingWatts ?? 0) > 0,
+}))
 </script>
 
 <template>
@@ -137,7 +177,6 @@ const batteryLabel = computed(() => {
           Real-time power flows between solar panels, battery storage, the electricity grid, and your home.
         </desc>
         <defs>
-          <!-- Arrow markers per flow color -->
           <marker
             v-for="flow in flows"
             :id="`arrow-${flow.id}`"
@@ -155,7 +194,7 @@ const batteryLabel = computed(() => {
           </marker>
         </defs>
 
-        <!-- Flow paths -->
+        <!-- Flow paths — stroke-width and animation speed scale with watts -->
         <g class="energy-flow__paths">
           <line
             v-for="flow in flows"
@@ -167,7 +206,8 @@ const batteryLabel = computed(() => {
             class="energy-flow__path"
             :class="{ 'energy-flow__path--active': flow.active }"
             :stroke="flow.active ? flow.color : 'var(--color-border)'"
-            stroke-width="2"
+            :stroke-width="flow.strokeWidth"
+            :style="{ '--flow-duration': flow.flowDuration }"
             :marker-end="`url(#arrow-${flow.id})`"
           />
         </g>
@@ -188,8 +228,7 @@ const batteryLabel = computed(() => {
           </text>
         </g>
 
-        <!-- Nodes -->
-        <!-- Solar -->
+        <!-- ── Solar node ────────────────────────────────────────────── -->
         <g class="energy-flow__node energy-flow__node--solar">
           <circle
             :cx="nodes.solar.cx"
@@ -198,9 +237,26 @@ const batteryLabel = computed(() => {
             fill="var(--color-surface-raised)"
             stroke="var(--color-solar)"
             stroke-width="2"
-            :class="{ 'energy-flow__node-circle--active': snapshot?.solar.isGenerating }"
+            :class="{ 'energy-flow__node-circle--pulse': activeSources.solar }"
           />
-          <text :x="nodes.solar.cx" :y="nodes.solar.cy + 5" text-anchor="middle" font-size="13" font-weight="600" fill="var(--color-solar)">☀</text>
+          <!-- Sun: centre circle + 8 short rays -->
+          <g
+            :transform="`translate(${nodes.solar.cx}, ${nodes.solar.cy})`"
+            fill="none"
+            stroke="var(--color-solar)"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          >
+            <circle cx="0" cy="0" r="4.5" />
+            <line x1="0"    y1="-8"   x2="0"    y2="-6.5" />
+            <line x1="0"    y1="6.5"  x2="0"    y2="8" />
+            <line x1="-8"   y1="0"    x2="-6.5" y2="0" />
+            <line x1="6.5"  y1="0"    x2="8"    y2="0" />
+            <line x1="-5.7" y1="-5.7" x2="-4.6" y2="-4.6" />
+            <line x1="4.6"  y1="4.6"  x2="5.7"  y2="5.7" />
+            <line x1="5.7"  y1="-5.7" x2="4.6"  y2="-4.6" />
+            <line x1="-4.6" y1="4.6"  x2="-5.7" y2="5.7" />
+          </g>
           <text :x="nodes.solar.cx" :y="nodes.solar.cy - 32" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)">Solar</text>
           <text
             v-if="snapshot?.solar.generatingWatts"
@@ -212,7 +268,7 @@ const batteryLabel = computed(() => {
           >{{ wattsLabel(snapshot.solar.generatingWatts) }}</text>
         </g>
 
-        <!-- Grid -->
+        <!-- ── Grid node ─────────────────────────────────────────────── -->
         <g class="energy-flow__node energy-flow__node--grid">
           <circle
             :cx="nodes.grid.cx"
@@ -222,11 +278,21 @@ const batteryLabel = computed(() => {
             :stroke="snapshot?.grid.isImporting ? 'var(--color-grid-import)' : snapshot?.grid.isExporting ? 'var(--color-grid-export)' : 'var(--color-border)'"
             stroke-width="2"
           />
-          <text :x="nodes.grid.cx" :y="nodes.grid.cy + 5" text-anchor="middle" font-size="13" font-weight="600" fill="var(--color-text-secondary)">⚡</text>
+          <!-- Lightning bolt -->
+          <g
+            :transform="`translate(${nodes.grid.cx}, ${nodes.grid.cy})`"
+            fill="none"
+            :stroke="snapshot?.grid.isImporting ? 'var(--color-grid-import)' : snapshot?.grid.isExporting ? 'var(--color-grid-export)' : 'var(--color-text-subdued)'"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="2,-8 -2,-1 2,-1 -2,8" />
+          </g>
           <text :x="nodes.grid.cx" :y="nodes.grid.cy - 32" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)">Grid</text>
         </g>
 
-        <!-- Battery -->
+        <!-- ── Battery node ──────────────────────────────────────────── -->
         <g class="energy-flow__node energy-flow__node--battery">
           <circle
             :cx="nodes.battery.cx"
@@ -236,7 +302,32 @@ const batteryLabel = computed(() => {
             :stroke="snapshot?.battery.isCharging ? 'var(--color-battery-charging)' : snapshot?.battery.isDischarging ? 'var(--color-battery-discharging)' : 'var(--color-border)'"
             stroke-width="2"
           />
-          <text :x="nodes.battery.cx" :y="nodes.battery.cy + 5" text-anchor="middle" font-size="13" font-weight="600" fill="var(--color-text-secondary)">🔋</text>
+          <!-- Battery body with proportional charge fill -->
+          <g
+            :transform="`translate(${nodes.battery.cx}, ${nodes.battery.cy})`"
+            fill="none"
+            stroke-linecap="round"
+          >
+            <rect x="-7" y="-5.5" width="14" height="11" rx="2"
+              :stroke="snapshot?.battery.isCharging ? 'var(--color-battery-charging)' : snapshot?.battery.isDischarging ? 'var(--color-battery-discharging)' : 'var(--color-text-subdued)'"
+              stroke-width="1.5"
+            />
+            <rect x="7" y="-2" width="2" height="4" rx="1"
+              :fill="snapshot?.battery.isCharging ? 'var(--color-battery-charging)' : snapshot?.battery.isDischarging ? 'var(--color-battery-discharging)' : 'var(--color-text-subdued)'"
+              stroke="none"
+            />
+            <rect
+              v-if="snapshot?.battery.chargePercent != null"
+              x="-5.5"
+              y="-4"
+              :width="(snapshot.battery.chargePercent / 100) * 11"
+              height="8"
+              rx="1"
+              :fill="snapshot.battery.isCharging ? 'var(--color-battery-charging)' : snapshot.battery.isDischarging ? 'var(--color-battery-discharging)' : 'var(--color-battery-idle)'"
+              stroke="none"
+              opacity="0.6"
+            />
+          </g>
           <text :x="nodes.battery.cx" :y="nodes.battery.cy - 32" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)">Battery</text>
           <text
             v-if="batteryLabel"
@@ -248,7 +339,7 @@ const batteryLabel = computed(() => {
           >{{ batteryLabel }}</text>
         </g>
 
-        <!-- Home -->
+        <!-- ── Home node ─────────────────────────────────────────────── -->
         <g class="energy-flow__node energy-flow__node--home">
           <circle
             :cx="nodes.home.cx"
@@ -258,7 +349,19 @@ const batteryLabel = computed(() => {
             stroke="var(--color-home)"
             stroke-width="2"
           />
-          <text :x="nodes.home.cx" :y="nodes.home.cy + 5" text-anchor="middle" font-size="13" font-weight="600" fill="var(--color-text-secondary)">🏠</text>
+          <!-- House: roof peak + walls + door -->
+          <g
+            :transform="`translate(${nodes.home.cx}, ${nodes.home.cy})`"
+            fill="none"
+            stroke="var(--color-text-secondary)"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="-8,0 0,-8 8,0" />
+            <rect x="-5.5" y="0" width="11" height="8" rx="1" />
+            <rect x="-2" y="4" width="4" height="4" rx="0.5" />
+          </g>
           <text :x="nodes.home.cx" :y="nodes.home.cy + 42" text-anchor="middle" font-size="12" fill="var(--color-text-secondary)">Home</text>
           <text
             v-if="snapshot?.home.consumingWatts"
@@ -286,7 +389,8 @@ const batteryLabel = computed(() => {
 }
 
 .energy-flow__path {
-  transition: stroke 300ms ease, opacity 300ms ease;
+  /* Opacity transition gives paths a smooth emerge/fade rather than snapping on/off. */
+  transition: stroke 300ms ease, opacity 400ms ease, stroke-width 400ms ease;
 }
 
 .energy-flow__path--active {
@@ -294,20 +398,35 @@ const batteryLabel = computed(() => {
 }
 
 .energy-flow__path:not(.energy-flow__path--active) {
-  opacity: 0.25;
+  opacity: 0.2;
 }
 
-/* Flow animation on active paths */
+/* Flow animation: dash speed driven by --flow-duration (set inline, scaled to watts).
+   Faster = more energy moving. This is information, not decoration. */
 @media (prefers-reduced-motion: no-preference) {
   .energy-flow__path--active {
     stroke-dasharray: 6 4;
-    animation: flow-dash 1.2s linear infinite;
+    animation: flow-dash var(--flow-duration, 1.2s) linear infinite;
   }
 }
 
 @keyframes flow-dash {
   from { stroke-dashoffset: 0; }
   to   { stroke-dashoffset: -20; }
+}
+
+/* Active source node: a slow, breathing outer glow communicates
+   "this node is contributing" without demanding attention.
+   filter:drop-shadow is GPU-composited on SVG elements. */
+@media (prefers-reduced-motion: no-preference) {
+  .energy-flow__node-circle--pulse {
+    animation: node-pulse 3s ease-in-out infinite;
+  }
+}
+
+@keyframes node-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0px transparent); }
+  50%       { filter: drop-shadow(0 0 6px var(--color-solar)); }
 }
 
 .energy-flow__watt-label {

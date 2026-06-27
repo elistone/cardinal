@@ -77,50 +77,52 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
       :is-loading="isLoading"
     />
 
-    <div class="now-panel__body">
-      <EnergyFlowDiagram :snapshot="snapshot" :is-loading="isLoading" />
+    <!-- The body fades in 100ms after the insight settles.
+         The delay creates a subtle hierarchy: explanation first, evidence second.
+         v-if keeps the body out of the DOM while loading so screen readers
+         do not encounter empty metric cards. -->
+    <Transition name="now-panel-body">
+      <div v-if="!isLoading" class="now-panel__body">
+        <EnergyFlowDiagram :snapshot="snapshot" :is-loading="false" />
 
-      <div class="now-panel__metrics" role="list" aria-label="Live power readings">
-        <div role="listitem">
-          <MetricCard
-            label="Solar output"
-            :value="isLoading ? null : isSensorUnavailable('solar') ? null : snapshot!.solar.generatingWatts"
-            unit="W"
-            concept="solar"
-            :is-loading="isLoading"
-          />
-        </div>
-        <div role="listitem">
-          <MetricCard
-            label="Battery"
-            :value="isLoading ? null : isSensorUnavailable('battery') ? null : batteryValue"
-            unit="W"
-            concept="battery"
-            :direction-label="isLoading ? undefined : batteryDirection"
-            :is-loading="isLoading"
-          />
-        </div>
-        <div role="listitem">
-          <MetricCard
-            label="Grid"
-            :value="isLoading ? null : isSensorUnavailable('grid') ? null : gridValue"
-            unit="W"
-            concept="grid"
-            :direction-label="isLoading ? undefined : gridDirection"
-            :is-loading="isLoading"
-          />
-        </div>
-        <div role="listitem">
-          <MetricCard
-            label="Home consumption"
-            :value="isLoading ? null : isSensorUnavailable('home') ? null : snapshot!.home.consumingWatts"
-            unit="W"
-            concept="home"
-            :is-loading="isLoading"
-          />
+        <div class="now-panel__metrics" role="list" aria-label="Live power readings">
+          <div role="listitem">
+            <MetricCard
+              label="Solar output"
+              :value="isSensorUnavailable('solar') ? null : snapshot!.solar.generatingWatts"
+              unit="W"
+              concept="solar"
+            />
+          </div>
+          <div role="listitem">
+            <MetricCard
+              label="Battery"
+              :value="isSensorUnavailable('battery') ? null : batteryValue"
+              unit="W"
+              concept="battery"
+              :direction-label="batteryDirection"
+            />
+          </div>
+          <div role="listitem">
+            <MetricCard
+              label="Grid"
+              :value="isSensorUnavailable('grid') ? null : gridValue"
+              unit="W"
+              concept="grid"
+              :direction-label="gridDirection"
+            />
+          </div>
+          <div role="listitem">
+            <MetricCard
+              label="Home consumption"
+              :value="isSensorUnavailable('home') ? null : snapshot!.home.consumingWatts"
+              unit="W"
+              concept="home"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </main>
 </template>
 
@@ -144,18 +146,19 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
 
 .now-panel__label {
   margin: 0;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-subdued);
 }
 
-/* Narrow default: diagram above, metrics in a 2-column grid below */
+/* Extra breathing room between the explanation and the supporting evidence. */
 .now-panel__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  margin-top: var(--space-2);
 }
 
 .now-panel__metrics {
@@ -176,6 +179,37 @@ function isSensorUnavailable(concept: 'solar' | 'battery' | 'grid' | 'home'): bo
   .now-panel__metrics {
     grid-template-columns: 1fr;
     gap: var(--space-3);
+  }
+}
+
+/* ── Loading → live stagger ─────────────────────────────────────────────────
+   The body (diagram + metrics) fades in 100ms after the insight arrives.
+   This communicates that the explanation is primary; the numbers are evidence.
+   GPU-composited: opacity + transform only.
+*/
+.now-panel-body-enter-active {
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+  transition-delay: 100ms;
+}
+.now-panel-body-leave-active {
+  transition: opacity 150ms ease-in;
+}
+.now-panel-body-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.now-panel-body-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .now-panel-body-enter-active,
+  .now-panel-body-leave-active {
+    transition: none;
+  }
+  .now-panel-body-enter-from {
+    opacity: 1;
+    transform: none;
   }
 }
 </style>

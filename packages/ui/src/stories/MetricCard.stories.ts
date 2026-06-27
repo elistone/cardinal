@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
+import { ref, onUnmounted } from 'vue'
 import MetricCard from '../components/MetricCard.vue'
 
 const meta: Meta<typeof MetricCard> = {
@@ -18,7 +19,7 @@ const meta: Meta<typeof MetricCard> = {
 export default meta
 type Story = StoryObj<typeof MetricCard>
 
-// --- Solar ---
+// ── Solar ──────────────────────────────────────────────────────────────────────
 
 export const SolarGenerating: Story = {
   args: {
@@ -38,7 +39,7 @@ export const SolarIdle: Story = {
   },
 }
 
-// --- Battery ---
+// ── Battery ────────────────────────────────────────────────────────────────────
 
 export const BatteryCharging: Story = {
   args: {
@@ -70,7 +71,7 @@ export const BatteryIdle: Story = {
   },
 }
 
-// --- Grid ---
+// ── Grid ───────────────────────────────────────────────────────────────────────
 
 export const GridImporting: Story = {
   args: {
@@ -92,7 +93,7 @@ export const GridExporting: Story = {
   },
 }
 
-// --- Home ---
+// ── Home ───────────────────────────────────────────────────────────────────────
 
 export const HomeConsuming: Story = {
   args: {
@@ -103,7 +104,7 @@ export const HomeConsuming: Story = {
   },
 }
 
-// --- System states ---
+// ── System states ──────────────────────────────────────────────────────────────
 
 export const Loading: Story = {
   args: {
@@ -122,4 +123,40 @@ export const Unavailable: Story = {
     unit: 'W',
     concept: 'solar',
   },
+}
+
+// ── Motion demo ────────────────────────────────────────────────────────────────
+// Cycles through realistic solar generation values every 2 seconds.
+// Shows the count animation and the W→kW unit transition in action.
+
+const SOLAR_VALUES = [280, 1450, 2700, 3600, 4100, 1020, 960, 450, 3200]
+
+export const LiveCountAnimation: Story = {
+  name: 'Motion — Live Count Animation',
+  render: () => ({
+    components: { MetricCard },
+    setup() {
+      const index = ref(0)
+      const value = ref(SOLAR_VALUES[0]!)
+
+      const timer = setInterval(() => {
+        index.value = (index.value + 1) % SOLAR_VALUES.length
+        value.value = SOLAR_VALUES[index.value]!
+      }, 2000)
+
+      onUnmounted(() => clearInterval(timer))
+
+      return { value }
+    },
+    template: `
+      <div>
+        <div style="max-width: 200px;">
+          <MetricCard label="Solar output" :value="value" unit="W" concept="solar" />
+        </div>
+        <p style="margin-top: 16px; font-size: 0.75rem; color: #64748b;">
+          Value changes every 2 s. Watch the count animation and W→kW unit transition.
+        </p>
+      </div>
+    `,
+  }),
 }

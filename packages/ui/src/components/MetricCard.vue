@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useAnimatedNumber } from '../composables/useAnimatedNumber.js'
+
 interface Props {
   label: string
   value: number | null
@@ -10,11 +13,13 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// Animated display value — smoothly counts between readings.
+// The composable respects prefers-reduced-motion and cancels on unmount.
+const animatedValue = useAnimatedNumber(() => props.value)
+
 function formatValue(value: number, unit: string): string {
   if (unit === 'kW' || unit === 'W') {
-    if (value >= 1000) {
-      return (value / 1000).toFixed(1)
-    }
+    if (value >= 1000) return (value / 1000).toFixed(1)
     return value.toFixed(0)
   }
   return value.toFixed(1)
@@ -26,15 +31,26 @@ function resolvedUnit(value: number, unit: string): string {
   return unit
 }
 
-const displayValue = () => {
-  if (props.value === null) return '—'
-  return formatValue(props.value, props.unit)
-}
+const displayValue = computed(() => {
+  if (animatedValue.value === null) return '—'
+  return formatValue(animatedValue.value, props.unit)
+})
 
-const displayUnit = () => {
-  if (props.value === null) return ''
-  return resolvedUnit(props.value, props.unit)
-}
+const displayUnit = computed(() => {
+  if (animatedValue.value === null) return ''
+  return resolvedUnit(animatedValue.value, props.unit)
+})
+
+// The screen-reader announcement uses the *final* prop value, not the animated
+// intermediate — screen readers should announce the settled number, not every frame.
+const srValue = computed(() => {
+  if (props.value === null) return `${props.label}: unavailable`
+  return `${props.label}: ${formatValue(props.value, props.unit)} ${resolvedUnit(props.value, props.unit)}`
+})
+
+// Flash class fires when the value prop changes to give a brief brightness pulse.
+// String-coerced so the key is always a valid PropertyKey (not null).
+const flashKey = computed(() => String(props.value))
 </script>
 
 <template>
@@ -47,13 +63,22 @@ const displayUnit = () => {
       <div class="metric-card__skeleton metric-card__skeleton--label" aria-hidden="true" />
     </template>
     <template v-else>
-      <!-- Visually-hidden live region announces full reading with label context when value changes -->
+      <!-- Visually-hidden live region announces the final settled value,
+           not intermediate animation frames. -->
       <span class="metric-card__sr-announce" aria-live="polite" aria-atomic="true">
-        {{ value !== null ? `${label}: ${displayValue()} ${displayUnit()}` : `${label}: unavailable` }}
+        {{ srValue }}
       </span>
+
       <div class="metric-card__value-row" aria-hidden="true">
-        <span class="metric-card__value">{{ displayValue() }}</span>
-        <span v-if="displayUnit()" class="metric-card__unit">{{ displayUnit() }}</span>
+        <!-- The key forces the flash animation to replay on each value change. -->
+        <span :key="flashKey" class="metric-card__value metric-card__value--flash">
+          {{ displayValue }}
+        </span>
+        <Transition name="unit">
+          <span v-if="displayUnit" :key="displayUnit" class="metric-card__unit">
+            {{ displayUnit }}
+          </span>
+        </Transition>
       </div>
       <p v-if="directionLabel" class="metric-card__direction" aria-hidden="true">
         {{ directionLabel }}
@@ -84,10 +109,10 @@ const displayUnit = () => {
   height: 2px;
 }
 
-.metric-card--solar::before { background: var(--color-solar); }
-.metric-card--battery::before { background: var(--color-battery-charging); }
-.metric-card--grid::before { background: var(--color-grid-import); }
-.metric-card--home::before { background: var(--color-home); }
+.metric-card--solar::before    { background: var(--color-solar); }
+.metric-card--battery::before  { background: var(--color-battery-charging); }
+.metric-card--grid::before     { background: var(--color-grid-import); }
+.metric-card--home::before     { background: var(--color-home); }
 
 .metric-card__value-row {
   display: flex;
@@ -104,6 +129,19 @@ const displayUnit = () => {
   color: var(--color-text-primary);
 }
 
+/* Brief brightness pulse on each value update. GPU-composited via filter.
+   The @keyframes fires because the :key binding forces element replacement. */
+@media (prefers-reduced-motion: no-preference) {
+  .metric-card__value--flash {
+    animation: value-flash 120ms ease-out;
+  }
+}
+
+@keyframes value-flash {
+  0%   { filter: brightness(1.4); }
+  100% { filter: brightness(1); }
+}
+
 .metric-card--unavailable .metric-card__value {
   color: var(--color-text-subdued);
 }
@@ -116,9 +154,20 @@ const displayUnit = () => {
   padding-bottom: 2px;
 }
 
+/* Unit cross-fade when W→kW threshold is crossed. */
+.unit-enter-active { transition: opacity 200ms ease-out; }
+.unit-leave-active { transition: opacity 150ms ease-in; position: absolute; }
+.unit-enter-from   { opacity: 0; }
+.unit-leave-to     { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .unit-enter-active,
+  .unit-leave-active { transition: none; }
+}
+
 .metric-card__direction {
   margin: 0 0 var(--space-1) 0;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-subdued);
 }

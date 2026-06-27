@@ -2,15 +2,75 @@
   "config": {
     "step": {
       "user": {
-        "title": "Configure Cardinal",
-        "description": "Map your Home Assistant sensors to Cardinal's energy concepts. Leave any field blank if you don't have that sensor.",
+        "title": "Live power sensors",
+        "description": "Select the sensors that report **current power in watts**. Cardinal uses these to describe what your home is doing right now.\n\nAll fields are optional — leave blank for hardware you don't have.\n\nFor **battery** and **grid**, use a signed sensor **or** separate sensors, not both. If you fill in both, the separate sensors take priority.",
         "data": {
           "solar_power": "Solar power",
-          "battery_power": "Battery power (signed sensor)",
+          "battery_power": "Battery power (signed)",
           "battery_charge_power": "Battery charge power",
           "battery_discharge_power": "Battery discharge power",
           "battery_state_of_charge": "Battery state of charge",
-          "grid_power": "Grid power (signed sensor)",
+          "grid_power": "Grid power (signed)",
+          "grid_import_power": "Grid import power",
+          "grid_export_power": "Grid export power",
+          "home_consumption": "Home consumption"
+        },
+        "data_description": {
+          "solar_power": "Current solar generation. Typically named 'PV power' or 'Solar power' in inverter integrations.",
+          "battery_power": "A single sensor: positive = charging, negative = discharging. Common on SolarEdge, SMA, and some Deye inverters.",
+          "battery_charge_power": "Charging rate only. Common on LuxPower, GivEnergy, FoxESS, and Solis inverters.",
+          "battery_discharge_power": "Discharging rate only. Pair with the charge power sensor above.",
+          "battery_state_of_charge": "Current battery charge level as a percentage.",
+          "grid_power": "A single sensor: positive = importing from grid, negative = exporting to grid.",
+          "grid_import_power": "Power drawn from the grid only.",
+          "grid_export_power": "Power sent to the grid only. Pair with the import power sensor above.",
+          "home_consumption": "Total power currently being used by the home. Often labelled 'Load power' or 'House power'."
+        }
+      },
+      "daily": {
+        "title": "Daily energy sensors",
+        "description": "Select the sensors that report **energy totals in kilowatt-hours** for today. Cardinal uses these to build the daily summary.\n\nAll fields are optional. If you skip this step, Cardinal will show live data only.",
+        "data": {
+          "solar_generated_today": "Solar generated today",
+          "battery_charged_today": "Battery charged today",
+          "battery_discharged_today": "Battery discharged today",
+          "grid_imported_today": "Grid imported today",
+          "grid_exported_today": "Grid exported today",
+          "home_consumed_today": "Home consumed today"
+        },
+        "data_description": {
+          "solar_generated_today": "Total solar energy produced since midnight. Resets daily.",
+          "battery_charged_today": "Total energy stored in the battery since midnight.",
+          "battery_discharged_today": "Total energy taken from the battery since midnight.",
+          "grid_imported_today": "Total energy drawn from the grid since midnight.",
+          "grid_exported_today": "Total energy sent to the grid since midnight.",
+          "home_consumed_today": "Total energy used by the home since midnight."
+        }
+      },
+      "tariffs": {
+        "title": "Electricity tariffs (optional)",
+        "description": "Connect your electricity tariff sensors to show cost and savings. Skip this step if you don't want cost tracking.\n\nFor dynamic tariffs such as Octopus Agile, select the sensor from your Octopus Energy integration that reports the current rate.",
+        "data": {
+          "import_rate": "Import rate",
+          "export_rate": "Export rate",
+          "currency": "Currency"
+        },
+        "data_description": {
+          "import_rate": "A sensor reporting your current electricity import price per kWh.",
+          "export_rate": "A sensor reporting your current electricity export or feed-in price per kWh.",
+          "currency": "Used to format cost values. Type any ISO 4217 code if yours is not listed (e.g. INR, ZAR)."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Cardinal",
+        "description": "Update your sensor mappings. Your current selections are shown.\n\nFor battery and grid, use a signed sensor or separate sensors, not both. If you fill in both, the separate sensors take priority.",
+        "data": {
+          "solar_power": "Solar power",
+          "battery_power": "Battery power (signed)",
+          "battery_charge_power": "Battery charge power",
+          "battery_discharge_power": "Battery discharge power",
+          "battery_state_of_charge": "Battery state of charge",
+          "grid_power": "Grid power (signed)",
           "grid_import_power": "Grid import power",
           "grid_export_power": "Grid export power",
           "home_consumption": "Home consumption",
@@ -25,41 +85,20 @@
           "currency": "Currency"
         },
         "data_description": {
-          "battery_power": "For inverters with a single sensor: positive = charging, negative = discharging. Use this OR the separate charge/discharge fields below, not both.",
-          "battery_charge_power": "For inverters with separate charge and discharge sensors.",
-          "battery_discharge_power": "For inverters with separate charge and discharge sensors.",
-          "grid_power": "For inverters with a single sensor: positive = importing, negative = exporting. Use this OR the separate import/export fields below, not both.",
-          "grid_import_power": "For inverters with separate import and export sensors.",
-          "grid_export_power": "For inverters with separate import and export sensors.",
-          "import_rate": "Current electricity import price per kWh.",
-          "export_rate": "Current electricity export price per kWh.",
-          "currency": "ISO currency code, e.g. GBP, EUR, USD."
-        }
-      },
-      "reconfigure": {
-        "title": "Reconfigure Cardinal",
-        "description": "Update your sensor mappings. Current values are shown as defaults.",
-        "data": {
-          "solar_power": "Solar power",
-          "battery_power": "Battery power (signed sensor)",
-          "battery_charge_power": "Battery charge power",
-          "battery_discharge_power": "Battery discharge power",
-          "battery_state_of_charge": "Battery state of charge",
-          "grid_power": "Grid power (signed sensor)",
-          "grid_import_power": "Grid import power",
-          "grid_export_power": "Grid export power",
-          "home_consumption": "Home consumption",
-          "solar_generated_today": "Solar generated today",
-          "battery_charged_today": "Battery charged today",
-          "battery_discharged_today": "Battery discharged today",
-          "grid_imported_today": "Grid imported today",
-          "grid_exported_today": "Grid exported today",
-          "home_consumed_today": "Home consumed today",
-          "import_rate": "Import rate",
-          "export_rate": "Export rate",
-          "currency": "Currency"
+          "battery_power": "Positive = charging, negative = discharging.",
+          "battery_charge_power": "Charging rate only. Takes priority over the signed sensor if both are set.",
+          "battery_discharge_power": "Discharging rate only.",
+          "grid_power": "Positive = importing, negative = exporting.",
+          "grid_import_power": "Import rate only. Takes priority over the signed sensor if both are set.",
+          "grid_export_power": "Export rate only.",
+          "import_rate": "Current import price per kWh.",
+          "export_rate": "Current export price per kWh.",
+          "currency": "ISO 4217 currency code."
         }
       }
+    },
+    "error": {
+      "no_live_sensors": "No sensors were selected. Cardinal needs at least one live power sensor to display your home's energy state. If your sensors don't appear in the pickers, check that they have a device class set in Home Assistant (Settings → Devices & Services → your inverter integration)."
     },
     "abort": {
       "reconfigure_successful": "Cardinal has been reconfigured and is reloading."

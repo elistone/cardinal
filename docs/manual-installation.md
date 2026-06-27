@@ -124,80 +124,65 @@ If Cardinal does not appear in the search, the files were not placed correctly. 
 
 ## Step 6 — Configure Cardinal
 
-Cardinal needs to know which Home Assistant sensors represent your solar, battery, and grid data. You map them by entering their entity IDs into the setup form.
+Cardinal walks you through a short three-step setup to connect your sensors. You select sensors from a picker — no entity IDs to type.
 
-### Finding entity IDs
+### Step 1 of 3 — Live power sensors
 
-Entity IDs look like `sensor.solar_power` or `sensor.battery_soc`. To find yours:
+Cardinal pre-selects sensors based on your inverter integration. Review the suggestions and correct any that look wrong.
 
-1. Go to **Developer Tools → States** in your HA sidebar
-2. Use the search box to filter by keywords like "solar", "battery", "grid", or your inverter's name
-3. Find the sensor that matches and copy its entity ID from the left column
+**For battery and grid**, your inverter may expose sensors in one of two ways:
 
-### What to fill in
+- **Single signed sensor** — one reading that is positive when charging (or importing) and negative when discharging (or exporting). Common on SolarEdge, SMA, and some Deye systems.
+- **Separate sensors** — one reading for charge rate and another for discharge rate. Common on LuxPower, GivEnergy, FoxESS, and Solis systems.
 
-The form has the following fields. Leave any field blank if you do not have that sensor.
+Fill in the fields that match your setup. If you are unsure, check your inverter's integration page in **Settings → Devices & Services**.
 
-**Solar**
-
-| Field | What it measures | Unit |
+| Sensor | What it measures | Unit |
 | --- | --- | --- |
 | Solar power | Current solar generation | W |
-| Solar generated today | Solar energy produced today | kWh |
-
-**Battery**
-
-Cardinal supports two different ways inverters report battery power. Use whichever matches yours:
-
-- **Separate sensors** — one sensor for charging power, one for discharging power. Common with inverters like LuxPower, GivEnergy, and FoxESS.
-- **Single signed sensor** — one sensor that is positive when charging and negative when discharging. Common with SolarEdge and some other systems.
-
-Fill in the fields that match your setup. If you fill in both, the separate sensors take priority.
-
-| Field | What it measures | Unit |
-| --- | --- | --- |
-| Battery power | Net battery power — positive = charging, negative = discharging | W |
+| Battery power (signed) | Net battery — positive = charging | W |
 | Battery charge power | Charging rate only | W |
 | Battery discharge power | Discharging rate only | W |
-| Battery state of charge | Current charge level | % |
-| Battery charged today | Energy stored in battery today | kWh |
-| Battery discharged today | Energy taken from battery today | kWh |
-
-**Grid**
-
-The same two-convention choice applies to grid sensors:
-
-- **Separate sensors** — one for import power (drawing from the grid) and one for export power (sending to the grid).
-- **Single signed sensor** — one sensor that is positive when importing and negative when exporting.
-
-| Field | What it measures | Unit |
-| --- | --- | --- |
-| Grid power | Net grid power — positive = importing, negative = exporting | W |
+| Battery state of charge | Current battery level | % |
+| Grid power (signed) | Net grid — positive = importing | W |
 | Grid import power | Power drawn from the grid | W |
 | Grid export power | Power sent to the grid | W |
-| Grid imported today | Energy drawn from the grid today | kWh |
-| Grid exported today | Energy sent to the grid today | kWh |
+| Home consumption | Total current home load | W |
 
-**Home**
+All fields are optional — leave blank for hardware you do not have.
 
-| Field | What it measures | Unit |
-| --- | --- | --- |
-| Home consumption | Current total home load | W |
-| Home consumed today | Total energy used by the home today | kWh |
+### Step 2 of 3 — Daily energy sensors
 
-**Rates (optional)**
+These sensors report energy totals (in kWh) that reset each midnight. Cardinal uses them to build the daily summary. If you skip this step, Cardinal shows live data only.
 
-| Field | What it measures |
+| Sensor | What it measures |
 | --- | --- |
-| Import rate | Current electricity import price per kWh |
-| Export rate | Current electricity export price per kWh |
-| Currency | Currency code, e.g. `GBP` or `EUR` |
+| Solar generated today | Solar energy produced since midnight |
+| Battery charged today | Energy stored in battery since midnight |
+| Battery discharged today | Energy taken from battery since midnight |
+| Grid imported today | Energy drawn from grid since midnight |
+| Grid exported today | Energy sent to grid since midnight |
+| Home consumed today | Energy used by home since midnight |
 
-### Tips
+### Step 3 of 3 — Tariffs (optional)
 
-- Cardinal will suggest entity IDs based on your sensor names. Review them before saving — they may not always be correct.
-- You do not need every sensor. Fill in what you have. Unconfigured sensors will appear as "Missing" in the health overlay but will not stop the panel from working.
-- Cardinal expects power in **watts (W)** and energy in **kilowatt-hours (kWh)**. Some inverter integrations report in kilowatts — if Cardinal shows values that look 1000× too large or too small, check the `unit_of_measurement` in Developer Tools → States.
+Connect your tariff sensors to show cost and savings. For Octopus Energy users, select the "current rate" sensor from the Octopus Energy integration.
+
+| Sensor | What it measures |
+| --- | --- |
+| Import rate | Current price per kWh for electricity drawn from the grid |
+| Export rate | Current price per kWh for electricity sent to the grid |
+| Currency | Currency for cost display (e.g. GBP, EUR, USD) |
+
+### If your sensors do not appear in the pickers
+
+The sensor pickers filter by device class — a property that well-configured inverter integrations set automatically. If your sensors are missing:
+
+1. Go to **Settings → Devices & Services** and find your inverter integration
+2. Check that the sensors list their unit of measurement and device class correctly
+3. If they do not, the integration may need updating, or you can set the device class manually via **Developer Tools → States** → the sensor → Edit
+
+Cardinal's health overlay (visible from the panel) will show which sensors are missing or unavailable after setup.
 
 ---
 

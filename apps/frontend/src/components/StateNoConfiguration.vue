@@ -4,8 +4,8 @@
       <div class="state-no-config__icon" aria-hidden="true">⚡</div>
       <h2 class="state-no-config__title">Set up Cardinal</h2>
       <p class="state-no-config__body">
-        Cardinal isn't connected to your home yet. Add your sensor mappings to start
-        seeing live energy data.
+        Cardinal isn't connected to your home yet. To get started, tell it which
+        energy sensors to read.
       </p>
       <p class="state-no-config__hint">
         Go to <strong>Settings → Integrations → Cardinal</strong> in Home Assistant

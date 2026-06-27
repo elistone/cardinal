@@ -29,7 +29,7 @@ defineProps<Props>()
     </template>
 
     <template v-else>
-      <p class="state-disconnected__no-data">Waiting for data after reconnection.</p>
+      <p class="state-disconnected__no-data">Waiting for your home's data to arrive.</p>
     </template>
   </div>
 </template>

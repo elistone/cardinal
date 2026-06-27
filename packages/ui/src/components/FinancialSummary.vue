@@ -40,7 +40,7 @@ const isUnavailable = () =>
     </template>
     <template v-else-if="isUnavailable()">
       <p class="financial-summary__unavailable">
-        Financial data is unavailable. Configure import and export tariff rates in settings.
+        To show savings, add your electricity rates in Settings → Cardinal.
       </p>
     </template>
     <template v-else>
@@ -51,7 +51,7 @@ const isUnavailable = () =>
         </span>
       </div>
       <div class="financial-summary__row">
-        <span class="financial-summary__label">Earned from export</span>
+        <span class="financial-summary__label">Export earnings</span>
         <span class="financial-summary__value financial-summary__value--earnings" aria-live="polite">
           {{ formatAmount(earnedAmount!, currency) }}
         </span>

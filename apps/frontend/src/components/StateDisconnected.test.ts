@@ -61,6 +61,6 @@ describe('StateDisconnected', () => {
 
   it('shows waiting message when no snapshot exists', () => {
     render(StateDisconnected, { props: { snapshot: null, insight: null } })
-    expect(screen.getByText(/Waiting for data/)).toBeDefined()
+    expect(screen.getByText("Waiting for your home's data to arrive.")).toBeDefined()
   })
 })

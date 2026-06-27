@@ -37,9 +37,9 @@ export const SHOWROOM_SCENES: ShowroomScene[] = [
       priority: 'normal',
       confidence: 'high',
       timestamp: ts(2),
-      title: 'Grid overnight',
+      title: 'Grid Overnight',
       description: 'Your home is running on grid power. The battery is resting.',
-      detail: 'Solar generation begins around sunrise.',
+      detail: 'Solar picks up again at sunrise.',
     },
   },
 
@@ -65,9 +65,9 @@ export const SHOWROOM_SCENES: ShowroomScene[] = [
       priority: 'normal',
       confidence: 'high',
       timestamp: ts(6, 30),
-      title: 'Solar starting',
-      description: 'The sun is rising. Solar is beginning to supplement grid power.',
-      detail: '230 W of solar generation reducing your grid draw.',
+      title: 'Solar Starting',
+      description: 'The sun is rising. Solar is beginning to reduce your grid use.',
+      detail: '230 W of solar is cutting how much you import from the grid.',
     },
   },
 
@@ -159,7 +159,7 @@ export const SHOWROOM_SCENES: ShowroomScene[] = [
   // Low-angle evening sun. Battery picking up the shortfall as solar fades.
   {
     id: 'sunset',
-    label: 'Solar fading',
+    label: 'Solar Fading',
     time: '18:30',
     durationMs: 4000,
     snapshot: {
@@ -177,9 +177,9 @@ export const SHOWROOM_SCENES: ShowroomScene[] = [
       priority: 'normal',
       confidence: 'high',
       timestamp: ts(18, 30),
-      title: 'Battery taking over',
-      description: "Solar is fading. Your battery is covering the shortfall.",
-      detail: 'Battery at 97%, supplying 1.3 kW.',
+      title: 'Battery Taking Over',
+      description: 'Solar is fading. Your battery is covering the shortfall.',
+      detail: 'Battery is at 97%, supplying 1.3 kW.',
     },
   },
 
@@ -233,9 +233,9 @@ export const SHOWROOM_SCENES: ShowroomScene[] = [
       priority: 'normal',
       confidence: 'high',
       timestamp: ts(23),
-      title: 'Grid overnight',
-      description: 'Battery is resting. Home is running on grid power overnight.',
-      detail: 'Solar generation will resume at sunrise.',
+      title: 'Grid Overnight',
+      description: 'The battery is resting. Your home is running on grid power.',
+      detail: 'Solar picks up again at sunrise.',
     },
   },
 ]

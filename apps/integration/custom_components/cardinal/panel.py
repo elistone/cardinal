@@ -3,8 +3,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from homeassistant.components.frontend import async_register_panel
+# async_register_panel was removed from homeassistant.components.frontend in
+# recent HA releases.  It now lives in panel_custom, which assembles the
+# _panel_custom config block and delegates to frontend.async_register_built_in_panel.
+from homeassistant.components.frontend import async_panel_exists, async_remove_panel
 from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.panel_custom import async_register_panel
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -41,27 +45,33 @@ STATIC_URL = f"/{DOMAIN}"
 
 
 async def async_setup_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    # Register the static files that serve the frontend bundle.
+    # async_register_static_paths raises ValueError if the path is already
+    # registered (no removal API exists), so we guard against reloads here.
     try:
         await hass.http.async_register_static_paths(
             [StaticPathConfig(STATIC_URL, str(FRONTEND_PATH), cache_headers=False)]
         )
     except ValueError:
-        # Static path is already registered from a previous setup — safe to continue.
         _LOGGER.debug("Static path %s already registered, skipping", STATIC_URL)
 
-    async_register_panel(
+    # panel_custom.async_register_panel calls async_register_built_in_panel
+    # with update=False, so registering an already-existing panel raises
+    # ValueError.  Remove any stale registration first (e.g. from a previous
+    # setup that crashed during teardown before async_unload_entry could run).
+    if async_panel_exists(hass, PANEL_URL):
+        async_remove_panel(hass, PANEL_URL, warn_if_unknown=False)
+
+    await async_register_panel(
         hass,
-        component_name="custom",
+        frontend_url_path=PANEL_URL,
+        webcomponent_name="cardinal-panel",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        frontend_url_path=PANEL_URL,
+        js_url=f"{STATIC_URL}/cardinal-panel.js",
+        embed_iframe=False,
+        trust_external=False,
         config={
-            "_panel_custom": {
-                "name": "cardinal-panel",
-                "js_url": f"{STATIC_URL}/cardinal-panel.js",
-                "embed_iframe": False,
-                "trust_external": False,
-            },
             "entityMapping": {
                 "solarPower": entry.data.get(CONF_SOLAR_POWER, ""),
                 "batteryPower": entry.data.get(CONF_BATTERY_POWER, ""),
@@ -84,6 +94,5 @@ async def async_setup_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:
             },
         },
         require_admin=False,
-        update=True,
     )
     _LOGGER.debug("Cardinal panel registered at /%s", PANEL_URL)

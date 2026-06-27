@@ -24,9 +24,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from homeassistant.components.frontend import async_remove_panel
 
-    try:
-        async_remove_panel(hass, PANEL_URL)
-    except Exception:
-        _LOGGER.debug("Panel %s was not registered, skipping removal", PANEL_URL)
-
+    # warn_if_unknown=False suppresses the log warning when the panel was
+    # never registered (e.g. setup failed before async_setup_panel ran).
+    async_remove_panel(hass, PANEL_URL, warn_if_unknown=False)
     return True

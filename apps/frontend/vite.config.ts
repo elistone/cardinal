@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import cssInjectedByJsPlugin from 'vite-plugin-css-injected-by-js'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -10,7 +11,12 @@ export default defineConfig(({ mode }) => {
   const isDev = mode !== 'production'
 
   return {
-    plugins: [vue()],
+    // cssInjectedByJsPlugin inlines the extracted CSS back into the JS bundle
+    // as a self-executing <style> injection.  Without this, Vite outputs a
+    // hashed CSS file (assets/main-[hash].css) whose relative path cannot be
+    // resolved when HA loads cardinal-panel.js from its panel URL — resulting
+    // in all CSS being silently dropped and every CSS variable being undefined.
+    plugins: [vue(), cssInjectedByJsPlugin()],
 
     // In dev mode, resolve workspace packages directly from source so that
     // Vite's watcher covers the full source tree — no pre-build step needed

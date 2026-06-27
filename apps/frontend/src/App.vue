@@ -60,16 +60,24 @@ const healthOverlayOpen = ref(false)
 <style>
 @import './styles/tokens.css';
 
-*,
-*::before,
-*::after {
+/*
+ * Scope all Cardinal resets to our own element tree.
+ * We must not touch html/body — those belong to Home Assistant.
+ */
+cardinal-panel,
+cardinal-panel *,
+cardinal-panel *::before,
+cardinal-panel *::after {
   box-sizing: border-box;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
+/*
+ * Custom elements are display:inline by default.  Make the panel fill
+ * whatever height HA's panel container provides — typically the full
+ * content area below HA's toolbar.
+ */
+cardinal-panel {
+  display: block;
   height: 100%;
 }
 </style>
@@ -79,9 +87,11 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 100%;
   background: var(--color-bg);
   color: var(--color-text-primary);
   font-family: var(--font-family-base);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>

@@ -12,9 +12,39 @@
 
 2. **The config entry was never created** — the integration must be added via Settings → Integrations → Add Integration → Cardinal before the panel appears. The panel is registered only after you complete the config flow.
 
-3. **The panel JavaScript failed to load** — open your browser's developer console (F12 → Console) and look for 404 errors or JavaScript exceptions. The JS file should load from `/cardinal/cardinal-panel.js`.
+3. **The panel JavaScript failed to load** — open your browser's developer console (F12 → Console) and look for 404 errors or JavaScript exceptions. The JS file should load from `/cardinal_static/cardinal-panel.js`.
 
 4. **Build output is missing** — verify that `custom_components/cardinal/frontend/cardinal-panel.js` exists and is non-empty. If it is missing, run `pnpm build --filter @cardinal/frontend` and copy the result.
+
+---
+
+## 403 Forbidden when refreshing the Cardinal page
+
+**Symptoms:** Navigating to Cardinal from the sidebar works, but pressing the browser's refresh button at `/cardinal` returns a 403 Forbidden error.
+
+**Cause:** The panel URL (`/cardinal`) and the static file path must not be the same string. When they match, HA's HTTP router resolves `/cardinal` to the static file directory rather than the HA SPA, and serving a bare directory without an index file produces 403.
+
+Cardinal registers static assets at `/cardinal_static` (not `/cardinal`) precisely to avoid this collision. If you are seeing a 403, you are likely running an older version of Cardinal where the static path was incorrectly set to `/cardinal`.
+
+**Fix:** Update Cardinal to the latest version. If you are running a manual install, ensure `panel.py` sets `STATIC_URL = f"/{DOMAIN}_static"`, then restart Home Assistant.
+
+---
+
+## Companion App shows only a dark background
+
+**Symptoms:** On the Home Assistant Companion App (iOS or Android), the Cardinal panel renders a blank dark screen instead of the live energy view.
+
+**What we know:** Cardinal injects all CSS (including its dark theme tokens) into `document.head` when `cardinal-panel.js` is evaluated. The `connectedCallback()` lifecycle method then clones that style into `ha-panel-custom`'s shadow root. The dark background you see confirms that the style clone ran successfully — `--color-bg` is resolving and `.cardinal-app { background: var(--color-bg) }` is being applied.
+
+**Most likely cause:** The Vue app mounted but encountered a JavaScript error during component rendering. Because Vue catches render errors internally, the panel can fail silently, leaving only the background element in the DOM.
+
+**How to diagnose:**
+1. On iOS: enable Web Inspector in Safari Settings → Advanced, connect the device, and open Safari on your Mac → Develop → [your device] → Cardinal.
+2. On Android: enable USB debugging and use Chrome DevTools via `chrome://inspect`.
+3. Look for JavaScript errors or warnings in the Console tab.
+4. Check whether `document.querySelector('cardinal-panel')._vm` exists (it will if Vue mounted).
+
+**Workaround while diagnosing:** Reload the panel from the sidebar (tap another sidebar item, then tap Cardinal again) rather than using the browser's native refresh button.
 
 ---
 

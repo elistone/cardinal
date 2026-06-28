@@ -109,18 +109,60 @@ cardinal-panel {
   font-family: var(--font-family-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /*
+   * Named container so @container cardinal-app queries below respond to
+   * the panel's own width, not the viewport.  The HA sidebar reduces panel
+   * width significantly, so viewport-relative breakpoints trigger too early.
+   */
+  container-type: inline-size;
+  container-name: cardinal-app;
 }
 
 /*
- * Single scroll root for both the NOW and TODAY sections.
- * NowPanel and TodayPanel stack vertically and overflow this container.
- * Previously NowPanel was its own scroll root (flex: 1, overflow-y: auto),
- * which made it impossible to scroll into a TodayPanel placed beneath it.
+ * Single scroll root for narrow layouts (mobile, tablet, narrow panel).
+ * NowPanel and TodayPanel stack vertically; this container scrolls them.
  */
 .cardinal-content {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  /* iOS safe-area inset: space for home indicator at the bottom of the screen */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/*
+ * Wide layout: NOW and TODAY side-by-side so both are visible without scrolling.
+ *
+ * At ≥900px panel width the content becomes a 2-column grid.  Each column
+ * scrolls independently, so neither section is ever hidden behind the fold.
+ * The TODAY column uses border-left instead of its own border-top (which is
+ * designed for the vertical-stacking mobile layout).
+ *
+ * 900px was chosen so the breakpoint triggers when the panel is comfortably
+ * wide enough for two columns — typically a 1280px+ monitor with the HA
+ * sidebar visible.  On tablets and narrow panels the layout stays vertical.
+ */
+@container cardinal-app (min-width: 900px) {
+  .cardinal-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .cardinal-content :deep(.now-panel),
+  .cardinal-content :deep(.today-panel) {
+    overflow-y: auto;
+    height: 100%;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Replace horizontal divider with vertical one for the side-by-side layout */
+  .cardinal-content :deep(.today-panel) {
+    border-top: none;
+    border-left: 1px solid var(--color-border);
+  }
 }
 </style>

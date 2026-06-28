@@ -41,7 +41,11 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 FRONTEND_PATH = Path(__file__).parent / FRONTEND_DIR
-STATIC_URL = f"/{DOMAIN}"
+# Static files are served at /cardinal_static, NOT /cardinal.
+# The panel itself is registered at /cardinal (PANEL_URL), so using the same
+# path for static assets causes HA's HTTP router to serve the frontend/
+# directory instead of the HA SPA on browser refresh, returning 403 Forbidden.
+STATIC_URL = f"/{DOMAIN}_static"
 
 
 async def async_setup_panel(hass: HomeAssistant, entry: ConfigEntry) -> None:

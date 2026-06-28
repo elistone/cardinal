@@ -1,46 +1,35 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type {
-  ConfigurationHealth,
-  DailyFinancials,
-  DailySummary,
-  EnergyInsight,
-  EnergySnapshot,
-} from '@cardinal/domain'
-import { describeEnergyState, buildDailyFinancials } from '@cardinal/core'
+import type { ConfigurationHealth, DailySummary, EnergySnapshot } from '@cardinal/domain'
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
+/**
+ * The live data store.
+ *
+ * Responsibilities:
+ * - Holding the latest snapshot received from the live provider
+ * - Holding the latest daily summary received from the live provider
+ * - Tracking the WebSocket connection status
+ * - Exposing configuration health
+ *
+ * This store is intentionally thin. It is a data sink for the live provider.
+ * All derived state — insight, financials, currentSnapshot — lives in
+ * useHistoryStore, which reads from here. Components must not read latestSnapshot
+ * directly; they should consume currentSnapshot from useHistoryStore instead.
+ */
 export const useEnergyStore = defineStore('energy', () => {
-  const snapshot = ref<EnergySnapshot | null>(null)
-  const dailySummary = ref<DailySummary | null>(null)
+  const latestSnapshot = ref<EnergySnapshot | null>(null)
+  const latestDailySummary = ref<DailySummary | null>(null)
   const health = ref<ConfigurationHealth | null>(null)
   const connectionStatus = ref<ConnectionStatus>('connecting')
-
-  const insight = computed<EnergyInsight | null>(() =>
-    snapshot.value ? describeEnergyState(snapshot.value) : null,
-  )
-
-  /**
-   * Daily financials derived from the daily summary and the live tariff rates.
-   *
-   * Returns null when either the summary has not arrived, or tariff rates are
-   * not configured (importRate / exportRate will be null from the provider).
-   * Recomputes automatically whenever the summary or snapshot tariffs change.
-   */
-  const dailyFinancials = computed<DailyFinancials | null>(() => {
-    const summary = dailySummary.value
-    const tariffs = snapshot.value?.tariffs
-    if (!summary || !tariffs?.importRate || !tariffs?.exportRate) return null
-    return buildDailyFinancials(summary, tariffs.importRate, tariffs.exportRate, tariffs.currency)
-  })
 
   /**
    * True when waiting for the first data after mount — no snapshot yet and
    * not explicitly disconnected. Shows skeleton loading states.
    */
   const isLoading = computed(
-    () => connectionStatus.value === 'connecting' && snapshot.value === null,
+    () => connectionStatus.value === 'connecting' && latestSnapshot.value === null,
   )
 
   /**
@@ -59,12 +48,12 @@ export const useEnergyStore = defineStore('energy', () => {
     return Object.values(health.value.live).some((c) => c.status !== 'missing')
   })
 
-  function setSnapshot(incoming: EnergySnapshot): void {
-    snapshot.value = incoming
+  function setLatestSnapshot(incoming: EnergySnapshot): void {
+    latestSnapshot.value = incoming
   }
 
-  function setDailySummary(incoming: DailySummary): void {
-    dailySummary.value = incoming
+  function setLatestDailySummary(incoming: DailySummary): void {
+    latestDailySummary.value = incoming
   }
 
   function setHealth(incoming: ConfigurationHealth): void {
@@ -76,17 +65,15 @@ export const useEnergyStore = defineStore('energy', () => {
   }
 
   return {
-    snapshot,
-    dailySummary,
-    dailyFinancials,
+    latestSnapshot,
+    latestDailySummary,
     health,
     connectionStatus,
-    insight,
     isLoading,
     isDisconnected,
     isConfigured,
-    setSnapshot,
-    setDailySummary,
+    setLatestSnapshot,
+    setLatestDailySummary,
     setHealth,
     setConnectionStatus,
   }

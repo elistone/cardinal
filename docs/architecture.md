@@ -101,18 +101,65 @@ From that point, the rest of the application communicates only through Cardinal 
 
 ## State Management and Data Flow
 
+### Live data path
+
 ```
-Provider  →  Pinia Store  →  Vue Components
-               ↑
-           packages/core
-           (pure functions)
+HassEnergyProvider  →  useEnergyStore  →  useHistoryStore  →  Vue Components
+                              ↑                  ↑
+                         packages/core      packages/core
+                         (pure functions)   (pure functions)
 ```
 
-1. The provider pushes Cardinal domain models into the relevant Pinia store when data changes.
-2. The store uses pure functions from `packages/core` to derive calculated values and insights (e.g. `calculateDailySavings(snapshot)`).
-3. Vue components consume the store only. Components must not contain business logic.
+1. `HassEnergyProvider` pushes Cardinal domain models into `useEnergyStore` when HA state changes.
+2. `useEnergyStore` stores raw live data only: `latestSnapshot`, `latestDailySummary`, `health`, `connectionStatus`. It does not derive insight or financials.
+3. `useHistoryStore` reads from `useEnergyStore` and computes: `currentSnapshot`, `currentDailySummary`, `currentInsight`, `currentDailyFinancials`, `currentTime`.
+4. Vue components consume `currentSnapshot` and related values from `useHistoryStore`. They never read `latestSnapshot` from `useEnergyStore` directly.
 
 **Business logic must never live inside Vue components.** Components are responsible for presentation only.
+
+### Live and historical data convergence
+
+```
+                  useEnergyStore.latestSnapshot
+                          │
+            ┌─────────────┴──────────────┐
+            │ live mode                  │ historical mode
+            ▼                            ▼
+  useHistoryStore.currentSnapshot ◄── historicalSnapshot (from IHistoricalSnapshotProvider)
+            │
+            ▼
+     Vue Components
+  (NowPanel, TodayPanel, etc.)
+```
+
+`currentSnapshot` is the single authoritative data source for all components. A component that renders correctly with live data renders correctly with historical data — no branching, no origin checks, no special cases.
+
+The dependency between stores is one-directional:
+
+```
+useHistoryStore → useEnergyStore   (permitted)
+useEnergyStore  → useHistoryStore  (forbidden — would create a cycle)
+```
+
+### Time modes
+
+`TimeMode` (`'live' | 'historical'`) is defined in `packages/domain`. The mode lives in `useHistoryStore`. Components are unaware of it.
+
+In **live** mode:
+- `currentSnapshot = latestSnapshot`
+- Animations run
+- Timestamps are relative ("Updated 3 seconds ago")
+
+In **historical** mode:
+- `currentSnapshot = historicalSnapshot`
+- Animations are paused via `--cardinal-animation-play-state: paused` on the root element
+- Timestamps are absolute ("Tuesday 28 June · 14:36:22")
+
+### Animation control in historical mode
+
+When `useHistoryStore.isLive` is false, `App.vue` adds the class `cardinal-app--historical` to the root element. This sets the CSS custom property `--cardinal-animation-play-state: paused`, which cascades to all descendants.
+
+Animated components use `animation-play-state: var(--cardinal-animation-play-state, running)`. They have no knowledge of live or historical mode — they simply respect the inherited value.
 
 ---
 
@@ -218,7 +265,7 @@ v1 is complete when Cardinal can answer one question:
 
 ### Out of Scope for v1
 
-- Historical analytics beyond today
+- Historical analytics beyond today (architecture ready; timeline UI is next milestone)
 - Forecasting and predictions
 - Additional modules (water, gas, EV, heating, air quality)
 - Time-of-use or complex tariff structures

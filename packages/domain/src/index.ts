@@ -27,6 +27,8 @@ export type {
 
 export type { EnergyEventType, EnergyEvent } from './event.js'
 
+export type { TimeMode } from './history.js'
+
 export type { EntityMapping } from './config.js'
 
 export type {

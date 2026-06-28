@@ -259,6 +259,108 @@ export const Showroom: Story = {
   }),
 }
 
+// ─── Historical mode ──────────────────────────────────────────────────────────
+//
+// These stories verify that NowPanel renders correctly with historical data.
+// The component receives the same props it always does — it has no knowledge
+// of whether the data is live or historical.
+//
+// The wrapper sets --cardinal-animation-play-state: paused to simulate the
+// .cardinal-app--historical class that App.vue applies in real usage.
+// All animations freeze; the diagram becomes a static snapshot.
+
+const historicalDecorator = () => ({
+  template: `
+    <div style="
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: var(--color-bg);
+      --cardinal-animation-play-state: paused;
+    ">
+      <story />
+    </div>
+  `,
+})
+
+export const HistoricalPeakSolar: Story = {
+  name: 'Historical — Peak Solar (12:00)',
+  decorators: [historicalDecorator],
+  args: {
+    snapshot: {
+      timestamp: new Date('2025-06-01T12:00:00Z'),
+      solar:   { generatingWatts: 4800, isGenerating: true },
+      battery: { chargePercent: 100, chargingWatts: 0, dischargingWatts: 0, isCharging: false, isDischarging: false, isIdle: true },
+      grid:    { importingWatts: 0, exportingWatts: 3300, isImporting: false, isExporting: true, isIdle: false },
+      home:    { consumingWatts: 1500 },
+      tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
+    },
+    insight: {
+      id: 'hist-peak',
+      type: 'solar_exporting',
+      sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp: new Date('2025-06-01T12:00:00Z'),
+      title: 'Exporting Solar',
+      description: "Battery is full. You're sending surplus solar to the grid.",
+      detail: "You've exported 6.3 kWh so far today.",
+    },
+  },
+}
+
+export const HistoricalEveningBattery: Story = {
+  name: 'Historical — Evening Battery (20:30)',
+  decorators: [historicalDecorator],
+  args: {
+    snapshot: {
+      timestamp: new Date('2025-06-01T20:30:00Z'),
+      solar:   { generatingWatts: 0, isGenerating: false },
+      battery: { chargePercent: 73, chargingWatts: 0, dischargingWatts: 2100, isCharging: false, isDischarging: true, isIdle: false },
+      grid:    { importingWatts: 0, exportingWatts: 0, isImporting: false, isExporting: false, isIdle: true },
+      home:    { consumingWatts: 2100 },
+      tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
+    },
+    insight: {
+      id: 'hist-eve',
+      type: 'battery_discharging',
+      sentiment: 'positive',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp: new Date('2025-06-01T20:30:00Z'),
+      title: 'Running on Battery',
+      description: 'Your home is running on battery power. No solar and no grid import.',
+      detail: 'Battery at 73%, supplying 2.1 kW.',
+    },
+  },
+}
+
+export const HistoricalOvernightGrid: Story = {
+  name: 'Historical — Overnight Grid (02:00)',
+  decorators: [historicalDecorator],
+  args: {
+    snapshot: {
+      timestamp: new Date('2025-06-01T02:00:00Z'),
+      solar:   { generatingWatts: 0, isGenerating: false },
+      battery: { chargePercent: 42, chargingWatts: 0, dischargingWatts: 0, isCharging: false, isDischarging: false, isIdle: true },
+      grid:    { importingWatts: 620, exportingWatts: 0, isImporting: true, isExporting: false, isIdle: false },
+      home:    { consumingWatts: 620 },
+      tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
+    },
+    insight: {
+      id: 'hist-night',
+      type: 'grid_importing',
+      sentiment: 'neutral',
+      priority: 'normal',
+      confidence: 'high',
+      timestamp: new Date('2025-06-01T02:00:00Z'),
+      title: 'Grid Overnight',
+      description: 'Your home is running on grid power. The battery is resting.',
+      detail: 'Solar picks up again at sunrise.',
+    },
+  },
+}
+
 export const WithSensorHealthOverlay: Story = {
   name: 'Interaction — Sensor Health Overlay',
   render: () => ({

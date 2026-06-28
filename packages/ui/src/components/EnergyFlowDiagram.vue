@@ -471,6 +471,7 @@ const DORMANT_PATHS = (() => {
   stroke: var(--color-border);
   stroke-width: 2;
   animation: dormant-breath 4s ease-in-out infinite;
+  animation-play-state: var(--cardinal-animation-play-state, running);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -502,6 +503,7 @@ const DORMANT_PATHS = (() => {
   .energy-flow__path--active {
     stroke-dasharray: 6 4;
     animation: flow-dash var(--flow-duration, 1.2s) linear infinite;
+    animation-play-state: var(--cardinal-animation-play-state, running);
   }
 }
 
@@ -516,6 +518,7 @@ const DORMANT_PATHS = (() => {
 @media (prefers-reduced-motion: no-preference) {
   .energy-flow__node-circle--pulse {
     animation: node-pulse 3s ease-in-out infinite;
+    animation-play-state: var(--cardinal-animation-play-state, running);
   }
 }
 

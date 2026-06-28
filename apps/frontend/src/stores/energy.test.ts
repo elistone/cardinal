@@ -46,140 +46,42 @@ describe('useEnergyStore', () => {
   })
 
   describe('initial state', () => {
-    it('starts with no snapshot', () => {
+    it('starts with no latest snapshot', () => {
       const store = useEnergyStore()
-      expect(store.snapshot).toBeNull()
+      expect(store.latestSnapshot).toBeNull()
     })
 
-    it('starts with no daily summary', () => {
+    it('starts with no latest daily summary', () => {
       const store = useEnergyStore()
-      expect(store.dailySummary).toBeNull()
-    })
-
-    it('starts with no daily financials', () => {
-      const store = useEnergyStore()
-      expect(store.dailyFinancials).toBeNull()
-    })
-
-    it('insight is null before the first snapshot arrives', () => {
-      const store = useEnergyStore()
-      expect(store.insight).toBeNull()
+      expect(store.latestDailySummary).toBeNull()
     })
   })
 
-  describe('setSnapshot', () => {
-    it('stores the snapshot', () => {
+  describe('setLatestSnapshot', () => {
+    it('stores the snapshot as latestSnapshot', () => {
       const store = useEnergyStore()
       const snapshot = makeSnapshot()
-      store.setSnapshot(snapshot)
-      expect(store.snapshot).toEqual(snapshot)
+      store.setLatestSnapshot(snapshot)
+      expect(store.latestSnapshot).toEqual(snapshot)
     })
 
-    it('derives an insight from the snapshot', () => {
+    it('updates latestSnapshot when called again', () => {
       const store = useEnergyStore()
-      store.setSnapshot(makeSnapshot())
-      expect(store.insight).not.toBeNull()
-    })
+      store.setLatestSnapshot(makeSnapshot())
 
-    it('insight carries the correct type for a charging-from-solar state', () => {
-      const store = useEnergyStore()
-      // Snapshot: solar 3000W, battery charging 1500W, no grid import
-      store.setSnapshot(makeSnapshot())
-      expect(store.insight?.type).toBe('battery_charging_solar')
-    })
+      const updated = { ...makeSnapshot(), solar: { generatingWatts: 0, isGenerating: false } }
+      store.setLatestSnapshot(updated)
 
-    it('insight has a non-empty description', () => {
-      const store = useEnergyStore()
-      store.setSnapshot(makeSnapshot())
-      expect(store.insight?.description.length).toBeGreaterThan(0)
-    })
-
-    it('insight has a non-empty title', () => {
-      const store = useEnergyStore()
-      store.setSnapshot(makeSnapshot())
-      expect(store.insight?.title.length).toBeGreaterThan(0)
-    })
-
-    it('updates the insight when a new snapshot arrives', () => {
-      const store = useEnergyStore()
-      store.setSnapshot(makeSnapshot())
-      const firstType = store.insight?.type
-
-      // New snapshot: no solar, importing from grid
-      store.setSnapshot({
-        ...makeSnapshot(),
-        solar: { generatingWatts: 0, isGenerating: false },
-        battery: {
-          chargePercent: 50,
-          chargingWatts: 0,
-          dischargingWatts: 0,
-          isCharging: false,
-          isDischarging: false,
-          isIdle: true,
-        },
-        grid: {
-          importingWatts: 1000,
-          exportingWatts: 0,
-          isImporting: true,
-          isExporting: false,
-          isIdle: false,
-        },
-      })
-
-      expect(store.insight?.type).toBe('grid_importing')
-      expect(store.insight?.type).not.toBe(firstType)
+      expect(store.latestSnapshot?.solar.isGenerating).toBe(false)
     })
   })
 
-  describe('setDailySummary', () => {
-    it('stores the daily summary', () => {
+  describe('setLatestDailySummary', () => {
+    it('stores the daily summary as latestDailySummary', () => {
       const store = useEnergyStore()
       const summary = makeDailySummary()
-      store.setDailySummary(summary)
-      expect(store.dailySummary).toEqual(summary)
-    })
-  })
-
-  describe('dailyFinancials (derived)', () => {
-    it('is null before any daily summary arrives', () => {
-      const store = useEnergyStore()
-      expect(store.dailyFinancials).toBeNull()
-    })
-
-    it('is null when summary exists but tariffs are not configured', () => {
-      const store = useEnergyStore()
-      store.setDailySummary(makeDailySummary())
-      // makeSnapshot() has importRate: null, exportRate: null
-      store.setSnapshot(makeSnapshot())
-      expect(store.dailyFinancials).toBeNull()
-    })
-
-    it('derives financials when summary and tariff rates are both available', () => {
-      const store = useEnergyStore()
-      store.setDailySummary(makeDailySummary())
-      store.setSnapshot({
-        ...makeSnapshot(),
-        tariffs: { importRate: 0.28, exportRate: 0.15, currency: 'GBP' },
-      })
-      const f = store.dailyFinancials
-      expect(f).not.toBeNull()
-      // importedKwh=1 × 0.28 = 0.28
-      expect(f?.importCost).toBeCloseTo(0.28)
-      // exportedKwh=5 × 0.15 = 0.75
-      expect(f?.exportEarnings).toBeCloseTo(0.75)
-      expect(f?.currency).toBe('GBP')
-    })
-
-    it('updates automatically when tariff rates become available', () => {
-      const store = useEnergyStore()
-      store.setDailySummary(makeDailySummary())
-      expect(store.dailyFinancials).toBeNull()
-
-      store.setSnapshot({
-        ...makeSnapshot(),
-        tariffs: { importRate: 0.28, exportRate: 0.15, currency: 'GBP' },
-      })
-      expect(store.dailyFinancials).not.toBeNull()
+      store.setLatestDailySummary(summary)
+      expect(store.latestDailySummary).toEqual(summary)
     })
   })
 
@@ -196,7 +98,7 @@ describe('useEnergyStore', () => {
 
     it('isLoading is false once a snapshot arrives', () => {
       const store = useEnergyStore()
-      store.setSnapshot(makeSnapshot())
+      store.setLatestSnapshot(makeSnapshot())
       expect(store.isLoading).toBe(false)
     })
 

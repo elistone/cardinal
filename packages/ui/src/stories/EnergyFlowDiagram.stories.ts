@@ -123,3 +123,62 @@ export const AllPathsStressTest: Story = {
     },
   },
 }
+
+// ─── Historical mode ──────────────────────────────────────────────────────────
+//
+// Historical snapshots render identically to live snapshots — the same props,
+// the same component, no branching logic.  The only difference is that the
+// ancestor has --cardinal-animation-play-state: paused, which freezes all
+// animations without the component needing to know why.
+//
+// These stories demonstrate that the diagram is fully inspectable as a static
+// snapshot, which is the intended experience while scrubbing the timeline.
+
+export const HistoricalFrozen: Story = {
+  name: 'Historical — Frozen (peak solar, 12:00)',
+  decorators: [
+    () => ({
+      // Simulate the cardinal-app--historical class by setting the CSS
+      // variable directly.  In the real application the class on .cardinal-app
+      // cascades this variable to all descendants automatically.
+      template: `
+        <div style="max-width: 400px; margin: 0 auto; --cardinal-animation-play-state: paused;">
+          <story />
+        </div>
+      `,
+    }),
+  ],
+  args: {
+    snapshot: {
+      timestamp: new Date('2025-06-01T12:00:00Z'),
+      solar:   { generatingWatts: 4800, isGenerating: true },
+      battery: { chargePercent: 100, chargingWatts: 0, dischargingWatts: 0, isCharging: false, isDischarging: false, isIdle: true },
+      grid:    { importingWatts: 0, exportingWatts: 3300, isImporting: false, isExporting: true, isIdle: false },
+      home:    { consumingWatts: 1500 },
+      tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
+    },
+  },
+}
+
+export const HistoricalEveningBattery: Story = {
+  name: 'Historical — Frozen (evening battery, 20:30)',
+  decorators: [
+    () => ({
+      template: `
+        <div style="max-width: 400px; margin: 0 auto; --cardinal-animation-play-state: paused;">
+          <story />
+        </div>
+      `,
+    }),
+  ],
+  args: {
+    snapshot: {
+      timestamp: new Date('2025-06-01T20:30:00Z'),
+      solar:   { generatingWatts: 0, isGenerating: false },
+      battery: { chargePercent: 73, chargingWatts: 0, dischargingWatts: 2100, isCharging: false, isDischarging: true, isIdle: false },
+      grid:    { importingWatts: 0, exportingWatts: 0, isImporting: false, isExporting: false, isIdle: true },
+      home:    { consumingWatts: 2100 },
+      tariffs: { importRate: 0.245, exportRate: 0.15, currency: 'GBP' },
+    },
+  },
+}

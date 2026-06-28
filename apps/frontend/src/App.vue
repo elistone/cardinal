@@ -2,22 +2,38 @@
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEnergyStore } from './stores/energy'
+import { useHistoryStore } from './stores/history'
 import { NowPanel, TodayPanel, SensorHealthOverlay, DiagnosticsPanel } from '@cardinal/ui'
 import AppHeader from './components/AppHeader.vue'
 import StateNoConfiguration from './components/StateNoConfiguration.vue'
 import StateDisconnected from './components/StateDisconnected.vue'
 
-const store = useEnergyStore()
-const { snapshot, insight, health, isDisconnected, isConfigured, isLoading, dailySummary, dailyFinancials } = storeToRefs(store)
+const energyStore = useEnergyStore()
+const historyStore = useHistoryStore()
 
-const lastUpdated = computed(() => snapshot.value?.timestamp ?? null)
+// Connection and sensor health are always live — they describe the WebSocket
+// status, not what is being viewed.
+const { health, isDisconnected, isConfigured, isLoading, latestSnapshot } = storeToRefs(energyStore)
+
+// What is currently being shown to the user.  In live mode these equal the
+// live provider's values.  In historical mode they are the retrieved snapshot.
+const { currentSnapshot, currentInsight, currentDailySummary, currentDailyFinancials, isLive } = storeToRefs(historyStore)
+
+// The header always shows the age of the live connection, not the selected
+// historical timestamp, so the user knows when data was last received.
+const lastUpdated = computed(() => latestSnapshot.value?.timestamp ?? null)
 
 const healthOverlayOpen = ref(false)
 const showDiagnostics = ref(false)
 </script>
 
 <template>
-  <div class="cardinal-app">
+  <!--
+    cardinal-app--historical pauses all animations when viewing a past snapshot.
+    The class is read by --cardinal-animation-play-state in global CSS below and
+    inherited by child components via CSS custom property cascading.
+  -->
+  <div class="cardinal-app" :class="{ 'cardinal-app--historical': !isLive }">
     <AppHeader
       :health="health"
       :is-disconnected="isDisconnected"
@@ -33,25 +49,25 @@ const showDiagnostics = ref(false)
     <!-- Disconnected: connection lost, show stale data dimmed -->
     <StateDisconnected
       v-else-if="isDisconnected"
-      :snapshot="snapshot"
-      :insight="insight"
+      :snapshot="currentSnapshot"
+      :insight="currentInsight"
     />
 
     <!--
       Live or loading: NowPanel + TodayPanel inside a single scroll container.
-      NowPanel handles null snapshot/insight as its own loading state.
-      TodayPanel handles null summary as its own loading state.
-      Both sections always render so the scroll position is stable.
+      Both sections read from currentSnapshot / currentDailySummary, which the
+      history store resolves from either the live provider or a historical fetch.
+      Components are mode-agnostic: they render data, not mode.
     -->
     <div v-else class="cardinal-content">
       <NowPanel
-        :snapshot="snapshot"
-        :insight="insight"
+        :snapshot="currentSnapshot"
+        :insight="currentInsight"
         :health="health"
       />
       <TodayPanel
-        :summary="dailySummary"
-        :financials="dailyFinancials"
+        :summary="currentDailySummary"
+        :financials="currentDailyFinancials"
         :is-loading="isLoading"
       />
     </div>
@@ -59,7 +75,7 @@ const showDiagnostics = ref(false)
     <!-- Developer diagnostics (hidden by default, toggled via ⚙ in header) -->
     <DiagnosticsPanel
       v-if="showDiagnostics"
-      :snapshot="snapshot"
+      :snapshot="currentSnapshot"
       :health="health"
     />
 
@@ -95,6 +111,23 @@ cardinal-panel *::after {
 cardinal-panel {
   display: block;
   height: 100%;
+}
+
+/*
+ * Animation play-state token.
+ *
+ * Components that animate use animation-play-state: var(--cardinal-animation-play-state, running).
+ * In historical mode, cardinal-app--historical is set on the root element,
+ * changing this variable to 'paused'.  The value cascades to all descendants
+ * through the normal CSS custom property inheritance mechanism, so every
+ * animated component freezes without needing to know about live/historical mode.
+ */
+.cardinal-app {
+  --cardinal-animation-play-state: running;
+}
+
+.cardinal-app--historical {
+  --cardinal-animation-play-state: paused;
 }
 </style>
 

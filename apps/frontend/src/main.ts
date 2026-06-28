@@ -127,10 +127,10 @@ class CardinalPanel extends HTMLElement {
           home: `${s.home.consumingWatts}W`,
         })
       }
-      store.setSnapshot(s)
+      store.setLatestSnapshot(s)
     })
 
-    this._provider.onDailySummary((summary) => store.setDailySummary(summary))
+    this._provider.onDailySummary((summary) => store.setLatestDailySummary(summary))
 
     this._provider.onHealth((h) => {
       if (import.meta.env.DEV) {

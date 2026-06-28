@@ -46,6 +46,7 @@ const lastUpdatedText = useLastUpdated(() => props.lastUpdated)
   background: var(--color-positive);
   flex-shrink: 0;
   animation: live-breath 3s ease-in-out infinite;
+  animation-play-state: var(--cardinal-animation-play-state, running);
 }
 
 @media (prefers-reduced-motion: reduce) {

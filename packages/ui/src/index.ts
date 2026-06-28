@@ -9,6 +9,7 @@ export { default as FinancialSummary } from './components/FinancialSummary.vue'
 export { default as SensorHealthBadge } from './components/SensorHealthBadge.vue'
 export { default as SensorHealthOverlay } from './components/SensorHealthOverlay.vue'
 export { default as EnergyFlowDiagram } from './components/EnergyFlowDiagram.vue'
+export { default as TimelineBar } from './components/TimelineBar.vue'
 
 export { useLastUpdated } from './composables/useLastUpdated.js'
 export { energyIntensity } from './utils/energyIntensity.js'

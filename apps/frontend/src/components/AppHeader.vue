@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ConfigurationHealth, SensorHealthStatus } from '@cardinal/domain'
 import { LiveIndicator } from '@cardinal/ui'
 
@@ -6,11 +7,33 @@ interface Props {
   health: ConfigurationHealth | null
   isDisconnected: boolean
   showDiagnostics: boolean
+  isLive?: boolean
   lastUpdated?: Date | null
+  currentTime?: Date | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  isLive: true,
   lastUpdated: null,
+  currentTime: null,
+})
+
+const historicalDate = computed<string>(() => {
+  if (!props.currentTime) return ''
+  return props.currentTime.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+})
+
+const historicalTime = computed<string>(() => {
+  if (!props.currentTime) return ''
+  return props.currentTime.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 })
 
 defineEmits<{ openHealth: []; toggleDiagnostics: [] }>()
@@ -40,12 +63,23 @@ const statusColors: Record<SensorHealthStatus, string> = {
     <span class="app-header__wordmark">Cardinal</span>
 
     <div class="app-header__actions">
-      <!-- LIVE indicator: fades out naturally when connection is lost.
-           The StateDisconnected view communicates the reconnecting state. -->
+      <!-- Live mode: breathing LIVE indicator (absent when disconnected) -->
       <LiveIndicator
-        v-if="!isDisconnected"
+        v-if="!isDisconnected && isLive"
         :last-updated="lastUpdated"
       />
+
+      <!-- Historical mode: absolute timestamp replaces the LIVE indicator -->
+      <div
+        v-else-if="!isLive && currentTime"
+        class="app-header__historical"
+        role="status"
+        aria-label="Viewing historical data"
+      >
+        <span class="app-header__historical-icon" aria-hidden="true">◷</span>
+        <span class="app-header__historical-date">{{ historicalDate }}</span>
+        <span class="app-header__historical-time">{{ historicalTime }}</span>
+      </div>
 
       <button
         v-if="health"
@@ -157,5 +191,29 @@ const statusColors: Record<SensorHealthStatus, string> = {
   background: var(--color-surface-raised);
   border-color: rgba(255, 255, 255, 0.15);
   color: var(--color-text-primary);
+}
+
+.app-header__historical {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.app-header__historical-icon {
+  opacity: 0.6;
+  font-size: 0.8125rem;
+}
+
+.app-header__historical-date {
+  color: var(--color-text-subdued);
+}
+
+.app-header__historical-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 </style>

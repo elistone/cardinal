@@ -3,10 +3,11 @@ import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEnergyStore } from './stores/energy'
 import { useHistoryStore } from './stores/history'
-import { NowPanel, TodayPanel, SensorHealthOverlay, DiagnosticsPanel } from '@cardinal/ui'
+import { NowPanel, TodayPanel, SensorHealthOverlay, DiagnosticsPanel, TimelineBar } from '@cardinal/ui'
 import AppHeader from './components/AppHeader.vue'
 import StateNoConfiguration from './components/StateNoConfiguration.vue'
 import StateDisconnected from './components/StateDisconnected.vue'
+import { useTimeTravel } from './composables/useTimeTravel'
 
 const energyStore = useEnergyStore()
 const historyStore = useHistoryStore()
@@ -17,7 +18,7 @@ const { health, isDisconnected, isConfigured, isLoading, latestSnapshot } = stor
 
 // What is currently being shown to the user.  In live mode these equal the
 // live provider's values.  In historical mode they are the retrieved snapshot.
-const { currentSnapshot, currentInsight, currentDailySummary, currentDailyFinancials, isLive } = storeToRefs(historyStore)
+const { currentSnapshot, currentInsight, currentDailySummary, currentDailyFinancials, isLive, currentTime } = storeToRefs(historyStore)
 
 // The header always shows the age of the live connection, not the selected
 // historical timestamp, so the user knows when data was last received.
@@ -25,6 +26,10 @@ const lastUpdated = computed(() => latestSnapshot.value?.timestamp ?? null)
 
 const healthOverlayOpen = ref(false)
 const showDiagnostics = ref(false)
+
+// Time Travel: simulation-backed historical scrubbing.
+// Replaced with a real IHistoricalSnapshotProvider when HA Recorder support lands.
+const timeTravel = useTimeTravel()
 </script>
 
 <template>
@@ -37,10 +42,28 @@ const showDiagnostics = ref(false)
     <AppHeader
       :health="health"
       :is-disconnected="isDisconnected"
+      :is-live="isLive"
       :show-diagnostics="showDiagnostics"
       :last-updated="lastUpdated"
+      :current-time="currentTime"
       @open-health="healthOverlayOpen = true"
       @toggle-diagnostics="showDiagnostics = !showDiagnostics"
+    />
+
+    <!--
+      Timeline bar: always visible when the app is in its normal operating state.
+      Scrubbing updates currentSnapshot via useHistoryStore, which every component
+      reads from. Returning to LIVE resumes live updates and re-enables animations.
+    -->
+    <TimelineBar
+      v-if="isConfigured !== false && !isDisconnected"
+      :is-live="isLive"
+      :current-time="currentTime"
+      :day-start="timeTravel.dayStart.value"
+      :day-end="timeTravel.dayEnd.value"
+      :waveform="timeTravel.waveform.value"
+      @seek="timeTravel.seek"
+      @go-live="timeTravel.goLive"
     />
 
     <!-- Not configured: entity mapping is empty -->

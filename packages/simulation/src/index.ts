@@ -29,6 +29,8 @@ export {
   touTariff,
 } from './profiles.js'
 
+export { buildWaveform } from './waveform.js'
+
 export {
   SUNNY_SUMMER_DAY,
   CLOUDY_DAY,

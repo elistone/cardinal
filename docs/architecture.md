@@ -50,6 +50,7 @@ packages/
   core/            Business logic — pure TypeScript functions, no framework dependencies
   domain/          Cardinal domain models (EnergySnapshot, BatteryState, DailySummary, etc.)
   providers/       Data fetching and translation — outputs Cardinal domain models
+  simulation/      Deterministic energy simulation engine — produces valid EnergySnapshots
   ui/              Reusable Vue components
 ```
 
@@ -59,12 +60,13 @@ packages/
 packages/domain     ← no Cardinal dependencies (foundation)
 packages/core       ← depends on domain
 packages/providers  ← depends on domain
-packages/ui         ← depends on domain
-apps/frontend       ← depends on core, providers, ui, domain
+packages/simulation ← depends on domain + core
+packages/ui         ← depends on domain + core + simulation
+apps/frontend       ← depends on core, providers, simulation, ui, domain
 apps/integration    ← Python only, no TypeScript dependencies
 ```
 
-No package may introduce a circular dependency. `packages/core` must never depend on `packages/providers` or any Vue package.
+No package may introduce a circular dependency. `packages/core` must never depend on `packages/providers`, `packages/simulation`, or any Vue package.
 
 ---
 
@@ -246,6 +248,52 @@ Cardinal should remain useful even when data is incomplete.
 - No single missing entity should prevent the rest of the application from rendering.
 
 Resilience is not an afterthought. Every provider translation and every store getter must handle `undefined` and `NaN` inputs explicitly.
+
+---
+
+## Simulation Package
+
+`packages/simulation` is a deterministic energy simulation engine.
+
+Its purpose is to produce realistic `EnergySnapshot` and `DailySummary` sequences — exactly as a real home would generate them — without depending on Home Assistant.
+
+### How it works
+
+`buildDay(scenario, date)` pre-computes 1440 `SimulatedPoint` values (one per minute) for a given `SimulationScenario`.  At each minute, the engine:
+
+1. Evaluates `solarProfile(t)` and `homeProfile(t)` to get instantaneous power in watts.
+2. Applies the dispatch priority: battery before grid, solar before anything else.
+3. Enforces energy balance: `solar + import + discharge = home + export + charge`.
+4. Integrates battery state, applying charge-side efficiency losses.
+5. Produces a valid `EnergySnapshot` and a running `DailySummary`.
+
+Every generated snapshot passes the same `validateSnapshot()` invariants as live data.
+
+### Scenarios
+
+| Scenario | Key story |
+|---|---|
+| Sunny Summer Day | 5 kW peak; battery charges in morning, exports at noon, discharges in evening |
+| Cloudy Day | 40% of peak solar; more grid import throughout |
+| Winter Day | Short solar window (08:00–16:00), 1.8 kW peak |
+| Storm — No Solar | Zero solar; battery discharges until empty, then grid takes over |
+| Heavy Evening Usage | Normal solar; 4.5 kW evening peak overwhelms battery |
+| EV Charging Overnight | 7.2 kW EV load 00:00–07:00 at cheap off-peak tariff |
+| Battery Charging, then Exporting | Grid charges battery 01:00–05:00 at cheap rate; solar exports surplus at midday |
+
+### Storybook integration
+
+The `useSimulationMode` composable (in `packages/ui`) wraps a `SimulatedDay` in a Vue-reactive interface.  It advances through simulated minutes at a configurable rate and returns `snapshot`, `insight`, and `dailySummary` as computed refs.  Storybook stories pass these to components via the same props used in production.
+
+### Why this package exists
+
+Simulation is the foundation for several future capabilities:
+
+- **Storybook** — components exercise real energy flows, not static hand-crafted states
+- **Replay mode** — `useHistoryStore` will accept simulated data as historical snapshots, enabling time-travel demos without HA access
+- **Marketing screenshots** — reproducible, controllable states on demand
+- **Automated UI tests** — deterministic inputs, always the same snapshots
+- **Development without HA** — run the full app against simulated data with no hardware
 
 ---
 

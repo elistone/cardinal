@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@cardinal/domain': path.join(packagesDir, 'domain/src/index.ts'),
         '@cardinal/core': path.join(packagesDir, 'core/src/index.ts'),
+        '@cardinal/simulation': path.join(packagesDir, 'simulation/src/index.ts'),
         '@cardinal/providers': path.join(packagesDir, 'providers/src/index.ts'),
         '@cardinal/ui': path.join(packagesDir, 'ui/src/index.ts'),
       },

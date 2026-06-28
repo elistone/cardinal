@@ -1,9 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { EnergySnapshot, EnergyInsight, ConfigurationHealth } from '@cardinal/domain'
+import { buildDay, SUNNY_SUMMER_DAY, CLOUDY_DAY } from '@cardinal/simulation'
 import NowPanel from '../components/NowPanel.vue'
 import SensorHealthOverlay from '../components/SensorHealthOverlay.vue'
 import { useShowroomMode } from '../composables/useShowroomMode.js'
+import { useSimulationMode } from '../composables/useSimulationMode.js'
 import { SHOWROOM_SCENES } from '../showroom/scenes.js'
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -252,6 +254,89 @@ export const Showroom: Story = {
             background: var(--color-positive);
           "></span>
           Showroom · {{ sceneTime }} · {{ sceneLabel }}
+        </div>
+        <NowPanel :snapshot="snapshot" :insight="insight" />
+      </div>
+    `,
+  }),
+}
+
+// ─── Simulation ───────────────────────────────────────────────────────────────
+//
+// These stories drive NowPanel with mathematically-generated EnergySnapshots
+// from the simulation engine.  Every energy value — solar, battery, grid, home
+// — is computed by the physics-based buildDay() function and passes the same
+// validateSnapshot() invariants as live data.
+//
+// Components receive the same props they always do: snapshot and insight.
+// They have no knowledge that the data is simulated rather than live.
+
+const SIMULATED_SUNNY_DAY = buildDay(SUNNY_SUMMER_DAY, new Date(2026, 5, 27))
+const SIMULATED_CLOUDY_DAY = buildDay(CLOUDY_DAY, new Date(2026, 5, 27))
+
+export const SimulatedSunnyDay: Story = {
+  name: 'Simulation — Sunny Summer Day',
+  render: () => ({
+    components: { NowPanel },
+    setup() {
+      const { snapshot, insight, currentTimestamp } = useSimulationMode(
+        SIMULATED_SUNNY_DAY,
+        { minutesPerSecond: 30 },  // full day in ~48 s
+      )
+      const timeLabel = computed(() => {
+        const d = currentTimestamp.value
+        return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      })
+      return { snapshot, insight, timeLabel }
+    },
+    template: `
+      <div style="display:flex;flex-direction:column;flex:1;position:relative;">
+        <div style="
+          position: absolute; bottom: 16px; left: 50%;
+          transform: translateX(-50%);
+          display: flex; align-items: center; gap: 6px;
+          font-size: 0.6875rem; font-weight: 600;
+          color: var(--color-text-subdued);
+          letter-spacing: 0.06em; text-transform: uppercase;
+          z-index: 10;
+        ">
+          <span style="width:5px;height:5px;border-radius:50%;background:var(--color-positive);"></span>
+          Simulation · {{ timeLabel }} · Sunny Summer Day
+        </div>
+        <NowPanel :snapshot="snapshot" :insight="insight" />
+      </div>
+    `,
+  }),
+}
+
+export const SimulatedCloudyDay: Story = {
+  name: 'Simulation — Cloudy Day',
+  render: () => ({
+    components: { NowPanel },
+    setup() {
+      const { snapshot, insight, currentTimestamp } = useSimulationMode(
+        SIMULATED_CLOUDY_DAY,
+        { minutesPerSecond: 30 },
+      )
+      const timeLabel = computed(() => {
+        const d = currentTimestamp.value
+        return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      })
+      return { snapshot, insight, timeLabel }
+    },
+    template: `
+      <div style="display:flex;flex-direction:column;flex:1;position:relative;">
+        <div style="
+          position: absolute; bottom: 16px; left: 50%;
+          transform: translateX(-50%);
+          display: flex; align-items: center; gap: 6px;
+          font-size: 0.6875rem; font-weight: 600;
+          color: var(--color-text-subdued);
+          letter-spacing: 0.06em; text-transform: uppercase;
+          z-index: 10;
+        ">
+          <span style="width:5px;height:5px;border-radius:50%;background:var(--color-positive);"></span>
+          Simulation · {{ timeLabel }} · Cloudy Day
         </div>
         <NowPanel :snapshot="snapshot" :insight="insight" />
       </div>

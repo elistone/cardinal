@@ -13,5 +13,7 @@ export { default as EnergyFlowDiagram } from './components/EnergyFlowDiagram.vue
 export { useLastUpdated } from './composables/useLastUpdated.js'
 export { energyIntensity } from './utils/energyIntensity.js'
 export { useShowroomMode } from './composables/useShowroomMode.js'
+export { useSimulationMode } from './composables/useSimulationMode.js'
+export type { SimulationModeOptions } from './composables/useSimulationMode.js'
 export { SHOWROOM_SCENES } from './showroom/scenes.js'
 export type { ShowroomScene } from './showroom/scenes.js'

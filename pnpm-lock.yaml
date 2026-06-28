@@ -120,11 +120,36 @@ importers:
         specifier: ^3.2.4
         version: 3.2.6(jsdom@29.1.1)
 
-  packages/ui:
+  packages/simulation:
     dependencies:
+      '@cardinal/core':
+        specifier: workspace:*
+        version: link:../core
       '@cardinal/domain':
         specifier: workspace:*
         version: link:../domain
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: ^3.2.4
+        version: 3.2.6(vitest@3.2.6(jsdom@29.1.1))
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.6(jsdom@29.1.1)
+
+  packages/ui:
+    dependencies:
+      '@cardinal/core':
+        specifier: workspace:*
+        version: link:../core
+      '@cardinal/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@cardinal/simulation':
+        specifier: workspace:*
+        version: link:../simulation
       vue:
         specifier: ^3.5.17
         version: 3.5.39(typescript@5.9.3)

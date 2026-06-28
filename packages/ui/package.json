@@ -20,7 +20,9 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@cardinal/core": "workspace:*",
     "@cardinal/domain": "workspace:*",
+    "@cardinal/simulation": "workspace:*",
     "vue": "^3.5.17"
   },
   "devDependencies": {

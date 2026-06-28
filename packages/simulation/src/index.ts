@@ -4,9 +4,22 @@ export type {
   SimulationScenario,
   SimulatedPoint,
   SimulatedDay,
+  DayState,
 } from './types.js'
 
 export { buildDay } from './engine.js'
+export type { BuildDayOptions } from './engine.js'
+
+export type {
+  ScenarioParameters,
+  SolarParameters,
+  HomeLoadParameters,
+  EvChargingParameters,
+  BatteryParameters,
+  TariffParameters,
+  GridChargeParameters,
+} from './parameters.js'
+export { buildScenarioFromParameters } from './parameters.js'
 
 export {
   solarBell,

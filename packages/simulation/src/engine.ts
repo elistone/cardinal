@@ -1,5 +1,20 @@
 import type { EnergySnapshot, DailySummary } from '@cardinal/domain'
-import type { SimulationScenario, SimulatedDay, SimulatedPoint } from './types.js'
+import type { SimulationScenario, SimulatedDay, SimulatedPoint, DayState } from './types.js'
+
+export interface BuildDayOptions {
+  /**
+   * Physical state carried forward from the previous day.
+   * When provided, the battery begins at `initialState.batteryChargePercent`
+   * instead of `scenario.battery.initialChargePercent`.
+   *
+   * Use `previousDay.endState` to chain consecutive days:
+   * ```ts
+   * const day1 = buildDay(scenario, mondayDate)
+   * const day2 = buildDay(scenario, tuesdayDate, { initialState: day1.endState })
+   * ```
+   */
+  readonly initialState?: DayState
+}
 
 const MINUTES_PER_DAY = 1440
 
@@ -32,11 +47,17 @@ function round3(n: number): number {
  * energy stored). Discharge is lossless in the model — a reasonable approximation
  * for round-trip efficiency typical of LFP batteries.
  */
-export function buildDay(scenario: SimulationScenario, date: Date): SimulatedDay {
+export function buildDay(
+  scenario: SimulationScenario,
+  date: Date,
+  options?: BuildDayOptions,
+): SimulatedDay {
   const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0)
 
-  let batteryKwh =
-    (scenario.battery.initialChargePercent / 100) * scenario.battery.capacityKwh
+  const startChargePercent =
+    options?.initialState?.batteryChargePercent ?? scenario.battery.initialChargePercent
+
+  let batteryKwh = (startChargePercent / 100) * scenario.battery.capacityKwh
 
   // Running totals (energy flows as sensors report them, not efficiency-adjusted)
   let solarKwh = 0
@@ -167,10 +188,16 @@ export function buildDay(scenario: SimulationScenario, date: Date): SimulatedDay
     points.push({ timestamp, snapshot, dailySummary })
   }
 
+  const lastPoint = points[MINUTES_PER_DAY - 1]!
+  const endState: DayState = {
+    batteryChargePercent: lastPoint.snapshot.battery.chargePercent,
+  }
+
   return {
     scenario,
     date: midnight,
     points,
+    endState,
     at(timestamp: Date): SimulatedPoint {
       const minuteOfDay = Math.floor(
         (timestamp.getTime() - midnight.getTime()) / 60_000,

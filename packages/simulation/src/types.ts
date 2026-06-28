@@ -54,16 +54,36 @@ export interface SimulatedPoint {
 }
 
 /**
+ * The physical state of a home at the boundary between two simulated days.
+ *
+ * Passing `endState` from one `SimulatedDay` as the `initialState` for the
+ * next `buildDay()` call chains days together so that battery state of charge
+ * carries forward naturally across midnight.
+ */
+export interface DayState {
+  /** Battery state of charge at the end of the day, 0–100. */
+  readonly batteryChargePercent: number
+}
+
+/**
  * A fully pre-computed simulated day.
  *
  * Contains 1440 SimulatedPoints (one per minute) and an at() lookup method for
  * retrieving the point whose minute contains any given timestamp.
+ *
+ * Use `endState` to chain consecutive days:
+ * ```ts
+ * const day1 = buildDay(scenario, date1)
+ * const day2 = buildDay(scenario, date2, { initialState: day1.endState })
+ * ```
  */
 export interface SimulatedDay {
   readonly scenario: SimulationScenario
   /** Local midnight that starts this day (time components are all zero). */
   readonly date: Date
   readonly points: readonly SimulatedPoint[]
+  /** Battery charge at 23:59 — pass as initialState to chain the next day. */
+  readonly endState: DayState
   /** Return the point for the minute that contains timestamp. Clamps to day boundaries. */
   readonly at: (timestamp: Date) => SimulatedPoint
 }
